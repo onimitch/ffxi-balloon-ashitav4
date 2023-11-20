@@ -9,9 +9,9 @@ defaults.Theme = 'default'
 defaults.Scale = 1.0
 defaults.ShowPortraits = true
 
-local windower_settings = windower.get_windower_settings()
+local scaling = require('scaling')
 defaults.Position = {}
-defaults.Position.X = windower_settings.ui_x_res / 2
-defaults.Position.Y = windower_settings.ui_y_res - 258
+defaults.Position.X = scaling.window.w / 2
+defaults.Position.Y = scaling.window.h - 258
 
 return defaults

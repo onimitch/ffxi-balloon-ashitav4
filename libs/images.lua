@@ -131,7 +131,7 @@ function images.new(str, settings, root_settings)
     t = {}
     local m = {}
     meta[t] = m
-    m.name = (_addon and _addon.name or 'image') .. '_gensym_' .. tostring(t):sub(8) .. '_%.8x':format(16^8 * math.random()):sub(3)
+    m.name = (_addon and _addon.name or 'image') .. '_gensym_' .. tostring(t):sub(8) .. ('_%.8x'):format(16^8 * math.random()):sub(3)
     m.settings = settings or {}
     m.status = m.status or {visible = false, image = {}}
     m.root_settings = root_settings
@@ -146,7 +146,7 @@ function images.new(str, settings, root_settings)
     m.formats = {}
     m.images = {}
 
-    windower.prim.create(m.name)
+    -- windower.prim.create(m.name)
 
     amend(m.settings, default_settings)
     if m.root_settings then
@@ -192,13 +192,13 @@ end
 
 -- Makes the primitive visible
 function images.show(t)
-    windower.prim.set_visibility(meta[t].name, true)
+    -- windower.prim.set_visibility(meta[t].name, true)
     meta[t].status.visible = true
 end
 
 -- Makes the primitive invisible
 function images.hide(t)
-    windower.prim.set_visibility(meta[t].name, false)
+    -- windower.prim.set_visibility(meta[t].name, false)
     meta[t].status.visible = false
 end
 
@@ -209,7 +209,7 @@ function images.visible(t, visible)
         return m.status.visible
     end
 
-    windower.prim.set_visibility(m.name, visible)
+    -- windower.prim.set_visibility(m.name, visible)
     m.status.visible = visible
 end
 
@@ -223,7 +223,7 @@ function images.pos(t, x, y)
         return m.settings.pos.x, m.settings.pos.y
     end
 
-    windower.prim.set_position(m.name, x, y)
+    -- windower.prim.set_position(m.name, x, y)
     m.settings.pos.x = x
     m.settings.pos.y = y
 end
@@ -250,7 +250,7 @@ function images.size(t, width, height)
         return m.settings.size.width, m.settings.size.height
     end
 
-    windower.prim.set_size(m.name, width, height)
+    -- windower.prim.set_size(m.name, width, height)
     m.settings.size.width = width
     m.settings.size.height = height
 end
@@ -276,7 +276,7 @@ function images.path(t, path)
         return meta[t].settings.texture.path
     end
 
-    windower.prim.set_texture(meta[t].name, path)
+    -- windower.prim.set_texture(meta[t].name, path)
     meta[t].settings.texture.path = path
 end
 
@@ -285,7 +285,7 @@ function images.fit(t, fit)
         return meta[t].settings.texture.fit
     end
 
-    windower.prim.set_fit_to_texture(meta[t].name, fit)
+    -- windower.prim.set_fit_to_texture(meta[t].name, fit)
     meta[t].settings.texture.fit = fit
 end
 
@@ -295,7 +295,7 @@ function images.repeat_xy(t, x, y)
         return m.settings.repeatable.x, m.settings.repeatable.y
     end
 
-    windower.prim.set_repeat(m.name, x, y)
+    -- windower.prim.set_repeat(m.name, x, y)
     m.settings.repeatable.x = x
     m.settings.repeatable.y = y
 end
@@ -314,7 +314,7 @@ function images.color(t, red, green, blue)
         return m.settings.color.red, m.settings.color.green, m.settings.color.blue
     end
 
-    windower.prim.set_color(m.name, m.settings.color.alpha, red, green, blue)
+    -- windower.prim.set_color(m.name, m.settings.color.alpha, red, green, blue)
     m.settings.color.red = red
     m.settings.color.green = green
     m.settings.color.blue = blue
@@ -326,7 +326,7 @@ function images.alpha(t, alpha)
         return m.settings.color.alpha
     end
 
-    windower.prim.set_color(m.name, alpha, m.settings.color.red, m.settings.color.green, m.settings.color.blue)
+    -- windower.prim.set_color(m.name, alpha, m.settings.color.red, m.settings.color.green, m.settings.color.blue)
     m.settings.color.alpha = alpha
 end
 
@@ -338,7 +338,7 @@ function images.transparency(t, alpha)
     end
 
     alpha = math.floor(255*(1-alpha))
-    windower.prim.set_color(m.name, alpha, m.settings.color.red, m.settings.color.green, m.settings.color.blue)
+    -- windower.prim.set_color(m.name, alpha, m.settings.color.red, m.settings.color.green, m.settings.color.blue)
     m.settings.color.alpha = alpha
 end
 
@@ -364,7 +364,7 @@ function images.destroy(t)
             break
         end
     end
-    windower.prim.delete(meta[t].name)
+    -- windower.prim.delete(meta[t].name)
     meta[t] = nil
 end
 
@@ -377,48 +377,48 @@ function images.get_extents(t)
     return ext_x, ext_y
 end
 
--- Handle drag and drop
-windower.register_event('mouse', function(type, x, y, delta, blocked)
-    if blocked then
-        return
-    end
+-- -- Handle drag and drop
+-- windower.register_event('mouse', function(type, x, y, delta, blocked)
+--     if blocked then
+--         return
+--     end
 
-    -- Mouse drag
-    if type == 0 then
-        if dragged then
-            dragged.image:pos(x - dragged.x, y - dragged.y)
-            return true
-        end
+--     -- Mouse drag
+--     if type == 0 then
+--         if dragged then
+--             dragged.image:pos(x - dragged.x, y - dragged.y)
+--             return true
+--         end
 
-    -- Mouse left click
-    elseif type == 1 then
-        for _, t in pairs(saved_images) do
-            local m = meta[t]
-            if m.settings.draggable and t:hover(x, y) then
-                local pos_x, pos_y = t:pos()
-                dragged = {image = t, x = x - pos_x, y = y - pos_y}
-                return true
-            end
-        end
+--     -- Mouse left click
+--     elseif type == 1 then
+--         for _, t in pairs(saved_images) do
+--             local m = meta[t]
+--             if m.settings.draggable and t:hover(x, y) then
+--                 local pos_x, pos_y = t:pos()
+--                 dragged = {image = t, x = x - pos_x, y = y - pos_y}
+--                 return true
+--             end
+--         end
 
-    -- Mouse left release
-    elseif type == 2 then
-        if dragged then
-            if meta[dragged.image].root_settings then
-                config.save(meta[dragged.image].root_settings)
-            end
-            dragged = nil
-            return true
-        end
-    end
+--     -- Mouse left release
+--     elseif type == 2 then
+--         if dragged then
+--             if meta[dragged.image].root_settings then
+--                 config.save(meta[dragged.image].root_settings)
+--             end
+--             dragged = nil
+--             return true
+--         end
+--     end
 
-    return false
-end)
+--     return false
+-- end)
 
 -- Can define functions to execute every time the settings are reloaded
 function images.register_event(t, key, fn)
     if not events[key] then
-        error('Event %s not available for text objects.':format(key))
+        error(('Event %s not available for text objects.'):format(key))
         return
     end
 

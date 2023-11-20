@@ -3,12 +3,12 @@ local theme = {}
 theme.apply = function(theme_settings)
     local options = {}
 
-    options.balloon_background = windower.addon_path .. 'themes/' .. theme_settings.name .. '/balloon.png'
-    options.system_background = windower.addon_path .. 'themes/' .. theme_settings.name .. '/system.png'
-    options.portrait_background = windower.addon_path .. 'themes/' .. theme_settings.name .. '/portrait-bg.png'
-    options.portrait_frame = windower.addon_path .. 'themes/' .. theme_settings.name .. '/portrait-frame.png'
-    options.name_background = windower.addon_path .. 'themes/' .. theme_settings.name .. '/name-bg.png'
-    options.prompt_image = windower.addon_path .. 'themes/' .. theme_settings.name .. '/advance-prompt.png'
+    options.balloon_background = addon.path .. '/themes/' .. theme_settings.name .. '/balloon.png'
+    options.system_background = addon.path .. '/themes/' .. theme_settings.name .. '/system.png'
+    options.portrait_background = addon.path .. '/themes/' .. theme_settings.name .. '/portrait-bg.png'
+    options.portrait_frame = addon.path .. '/themes/' .. theme_settings.name .. '/portrait-frame.png'
+    options.name_background = addon.path .. '/themes/' .. theme_settings.name .. '/name-bg.png'
+    options.prompt_image = addon.path .. '/themes/' .. theme_settings.name .. '/advance-prompt.png'
 
     options.message = {}
     options.message.width = theme_settings.message.width
@@ -17,7 +17,7 @@ theme.apply = function(theme_settings)
     options.message.offset_y = theme_settings.message.textoffsety
     options.message.max_length = theme_settings.message.maxlength or 75
     local message_languages = {English=theme_settings.message.fontenglish, Japanese=theme_settings.message.fontjapanese}
-    options.message.font = message_languages[windower.ffxi.get_info().language]
+    options.message.font = message_languages['English'] --windower.ffxi.get_info().language]
     options.message.font_size = theme_settings.message.size
     options.message.font_color = {}
     options.message.font_color.alpha = theme_settings.message.dialogue.color.alpha
@@ -82,7 +82,7 @@ theme.apply = function(theme_settings)
     options.name.background_offset_x = theme_settings.npcname.offsetx
     options.name.background_offset_y = theme_settings.npcname.offsety
     local name_languages = {English=theme_settings.npcname.fontenglish, Japanese=theme_settings.npcname.fontjapanese}
-    options.name.font = name_languages[windower.ffxi.get_info().language]
+    options.name.font = name_languages['English'] -- windower.ffxi.get_info().language]
     options.name.font_size = theme_settings.npcname.size
     options.name.font_color = {}
     options.name.font_color.alpha = theme_settings.npcname.color.alpha
@@ -123,8 +123,10 @@ theme.apply = function(theme_settings)
         options.timer.offset_y = theme_settings.timer.textoffsety or theme_settings.prompt.offsety
         local timer_languages = {English=theme_settings.timer.fontenglish or theme_settings.message.fontenglish,
                                  Japanese=theme_settings.timer.fontjapanese or theme_settings.message.fontjapanese}
-        options.timer.font = timer_languages[windower.ffxi.get_info().language]
-        options.timer.font_size = theme_settings.timer.size or theme_settings.message.size
+        options.timer.font = timer_languages['English'] --windower.ffxi.get_info().language]
+        -- TODO: Why is theme_settings.timer.size a function???
+        -- options.timer.font_size = theme_settings.timer.size or theme_settings.message.size
+        options.timer.font_size = theme_settings.message.size
 
         options.timer.font_color = {}
         if theme_settings.timer.color then

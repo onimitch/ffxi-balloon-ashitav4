@@ -4,7 +4,7 @@
 
 _libs = _libs or {}
 
-require('functions')
+require('libs.functions')
 
 local functions = _libs.functions
 local string = require('string')
@@ -18,7 +18,7 @@ _raw.math = setmetatable(_raw.math or {}, {__index = math})
 
 debug.setmetatable(0, {
     __index = function(_, k)
-        return math[k] or (_raw and _raw.error or error)('"%s" is not defined for numbers':format(tostring(k)), 2)
+        return math[k] or (_raw and _raw.error or error)(('"%s" is not defined for numbers'):format(tostring(k)), 2)
     end
 })
 
@@ -26,9 +26,9 @@ debug.setmetatable(0, {
 local digitorder = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'}
 
 -- Constants
-math.e = 1:exp()
+math.e = (1):exp()
 math.tau = 2 * math.pi
-math.phi = (1 + 5:sqrt())/2
+math.phi = (1 + (5):sqrt())/2
 
 -- Rounds to prec decimal digits. Accepts negative numbers for precision.
 function math.round(num, prec)
@@ -73,7 +73,7 @@ function math.base(val, base)
     if base == nil or base == 10 or val == 0 then
         return val:string()
     elseif base == 1 then
-        return '1':rep(val)
+        return ('1'):rep(val)
     end
 
     local num = val:abs()
@@ -116,7 +116,7 @@ function math.radian(v)
 end
 
 --[[
-Copyright © 2013-2014, Windower
+Copyright Â© 2013-2014, Windower
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:

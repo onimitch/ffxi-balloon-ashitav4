@@ -230,6 +230,7 @@ function ui:show(timed)
 end
 
 function ui:set_type(type)
+    print('ui:set_type: "' .. type .. '"')
     local types = {
         --[190] = self._system_settings, -- system text (always a duplicate of 151?)
         [150] = self._dialogue_settings, -- npc text
@@ -255,30 +256,31 @@ function ui:set_type(type)
 end
 
 function ui:set_character(name)
+    print('ui:set_character: "' .. name .. '"')
     self.name_text:text(' '..name)
 
-    local info = windower.ffxi.get_info()
-    local zone_name = res.zones[info.zone].en
+    local zone_id = tonumber(AshitaCore:GetMemoryManager():GetParty():GetMemberZone(0))
+    local zone_name = AshitaCore:GetResourceManager():GetString("zones.names", zone_id)
     local s = false
     if zone_name:endswith('[S]') then
         s = true
     end
 
     if self._global_show_portraits and self._theme_options.portrait then
-        local theme_portrait = (windower.addon_path..'themes/'..self._theme..'/portraits/%s.png'):format(name)
-        local theme_portrait_s = (windower.addon_path..'themes/'..self._theme..'/portraits/%s (S).png'):format(name)
-        local portrait = (windower.addon_path..'portraits/%s.png'):format(name)
-        local portrait_s = (windower.addon_path..'portraits/%s (S).png'):format(name)
-        if s and windower.file_exists(theme_portrait_s) then
+        local theme_portrait = (addon.path..'/themes/'..self._theme..'/portraits/%s.png'):format(name)
+        local theme_portrait_s = (addon.path..'/themes/'..self._theme..'/portraits/%s (S).png'):format(name)
+        local portrait = (addon.path..'/portraits/%s.png'):format(name)
+        local portrait_s = (addon.path..'/portraits/%s (S).png'):format(name)
+        if s and ashita.fs.exists(theme_portrait_s) then
             self.portrait:path(theme_portrait_s)
             self._has_portrait = true
-        elseif s and windower.file_exists(portrait_s) then
+        elseif s and ashita.fs.exists(portrait_s) then
             self.portrait:path(portrait_s)
             self._has_portrait = true
-        elseif windower.file_exists(theme_portrait) then
+        elseif ashita.fs.exists(theme_portrait) then
             self.portrait:path(theme_portrait)
             self._has_portrait = true
-        elseif windower.file_exists(portrait) then
+        elseif ashita.fs.exists(portrait) then
             self.portrait:path(portrait)
             self._has_portrait = true
         else
@@ -289,8 +291,8 @@ function ui:set_character(name)
     end
 
     -- set a custom balloon based on npc name, if an image for them exists
-    local fname = windower.addon_path..'themes/'..self._theme..('/characters/%s.png'):format(name)
-	if windower.file_exists(fname) then
+    local fname = addon.path..'/themes/'..self._theme..('/characters/%s.png'):format(name)
+	if ashita.fs.exists(fname) then
 		self:update_message_bg(fname)
         return true
     end
@@ -338,6 +340,8 @@ function ui:wrap_text(str)
 end
 
 function ui:set_message(message)
+    print('ui:set_message: "' .. message .. '"')
+
     self._current_text = message
     self._chars_shown = 0
     self.message_text:text('')

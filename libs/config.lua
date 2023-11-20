@@ -4,15 +4,15 @@
 
 _libs = _libs or {}
 
-require('tables')
-require('sets')
-require('lists')
-require('strings')
+require('libs.tables')
+require('libs.sets')
+require('libs.lists')
+require('libs.strings')
 
 local table, set, list, string = _libs.tables, _libs.sets, _libs.lists, _libs.strings
-local xml = require('xml')
-local files = require('files')
-local json = require('json')
+local xml = require('libs.xml')
+local files = require('libs.files')
+local json = require('libs.json')
 
 local config = {}
 
@@ -131,9 +131,9 @@ function parse(settings)
 
     local full_parsed = parsed.global
 
-    local player = windower.ffxi.get_player()
+    local player = GetPlayerEntity()
     if player then
-        full_parsed = table.update(full_parsed, rawget(parsed, player.name:lower()), true)
+        full_parsed = table.update(full_parsed, rawget(parsed, player.Name:lower()), true)
     end
 
     return merge(settings, full_parsed)
@@ -256,7 +256,7 @@ function merge(t, t_merge, path)
 
             if err then
                 if path then
-                    warning('Could not safely merge values for \'%s/%s\', %s expected (default: %s), got %s (%s).':format(path:concat('/'), key, class(oldval), tostring(oldval), class(val), tostring(val)))
+                    warning(('Could not safely merge values for \'%s/%s\', %s expected (default: %s), got %s (%s).'):format(path:concat('/'), key, class(oldval), tostring(oldval), class(val), tostring(val)))
                 end
                 t[key] = val
             end
@@ -327,36 +327,36 @@ end
 -- Writes the passed config table to the spcified file name.
 -- char defaults to windower.ffxi.get_player().name. Set to "all" to apply to all characters.
 function config.save(t, char)
-    if char ~= 'all' and not windower.ffxi.get_info().logged_in then
-        return
-    end
+    -- if char ~= 'all' and not windower.ffxi.get_info().logged_in then
+    --     return
+    -- end
 
-    char = (char or windower.ffxi.get_player().name):lower()
-    local meta = settings_map[t]
+    -- char = (char or windower.ffxi.get_player().name):lower()
+    -- local meta = settings_map[t]
 
-    if char == 'all' then
-        char = 'global'
-    elseif char ~= 'global' and not meta.chars:contains(char) then
-        meta.chars:add(char)
-        meta.original[char] = T{}
-    end
+    -- if char == 'all' then
+    --     char = 'global'
+    -- elseif char ~= 'global' and not meta.chars:contains(char) then
+    --     meta.chars:add(char)
+    --     meta.original[char] = T{}
+    -- end
 
-    meta.original[char]:update(t)
+    -- meta.original[char]:merge(t)
 
-    if char == 'global' then
-        meta.original = T{global = meta.original.global}
-        meta.chars = S{}
-    else
-        meta.original.global:amend(meta.original[char], true)
-        meta.original[char] = table_diff(meta.original.global, meta.original[char]) or T{}
+    -- if char == 'global' then
+    --     meta.original = T{global = meta.original.global}
+    --     meta.chars = S{}
+    -- else
+    --     meta.original.global:amend(meta.original[char], true)
+    --     meta.original[char] = table_diff(meta.original.global, meta.original[char]) or T{}
 
-        if meta.original[char]:empty(true) then
-            meta.original[char] = nil
-            meta.chars:remove(char)
-        end
-    end
+    --     if meta.original[char]:empty(true) then
+    --         meta.original[char] = nil
+    --         meta.chars:remove(char)
+    --     end
+    -- end
 
-    meta.file:write(settings_xml(meta))
+    -- meta.file:write(settings_xml(meta))
 end
 
 -- Returns the table containing only elements from t_new that are different from t and not nil.
@@ -404,15 +404,15 @@ function settings_xml(meta)
             lines:append('    <!--')
             local comment_lines = meta.comments.settings:split('\n')
             for comment in comment_lines:it() do
-                lines:append('        %s':format(comment:trim()))
+                lines:append(('        %s'):format(comment:trim()))
             end
 
             lines:append('    -->')
         end
 
-        lines:append('    <%s>':format(char))
+        lines:append(('    <%s>'):format(char))
         lines:append(nest_xml(meta.original[char], meta))
-        lines:append('    </%s>':format(char))
+        lines:append(('    </%s>'):format(char))
     end
 
     lines:append('</settings>')
@@ -433,17 +433,17 @@ function nest_xml(t, meta, indentlevel)
     for _, key in ipairs(keys) do
         val = t[key]
         if type(val) == 'table' and not (class(val) == 'List' or class(val) == 'Set') then
-            fragments:append('%s<%s>':format(indent, key))
+            fragments:append(('%s<%s>'):format(indent, key))
             if meta.comments[key] then
-                local c = '<!-- %s -->':format(meta.comments[key]:trim()):split('\n')
+                local c = ('<!-- %s -->'):format(meta.comments[key]:trim()):split('\n')
                 local pre = ''
                 for cstr in c:it() do
-                    fragments:append('%s%s%s':format(indent, pre, cstr:trim()))
+                    fragments:append(('%s%s%s'):format(indent, pre, cstr:trim()))
                     pre = '\t '
                 end
             end
             fragments:append(nest_xml(val, meta, indentlevel + 1))
-            fragments:append('%s</%s>':format(indent, key))
+            fragments:append(('%s</%s>'):format(indent, key))
 
         else
             if class(val) == 'List' then
@@ -453,15 +453,15 @@ function nest_xml(t, meta, indentlevel)
             elseif type(val) == 'table' then
                 val = table.format(val, 'csv')
             elseif type(val) == 'string' and meta.cdata:contains(tostring(key):lower()) then
-                val = '<![CDATA[%s]]>':format(val)
+                val = ('<![CDATA[%s]]>'):format(val)
             else
                 val = tostring(val)
             end
 
             if val == '' then
-                fragments:append('%s<%s />':format(indent, key))
+                fragments:append(('%s<%s />'):format(indent, key))
             else
-                fragments:append('%s<%s>%s</%s>':format(indent, key, meta.cdata:contains(tostring(key):lower()) and val or val:xml_escape(), key))
+                fragments:append(('%s<%s>%s</%s>'):format(indent, key, meta.cdata:contains(tostring(key):lower()) and val or val:xml_escape(), key))
             end
             local length = fragments:last():length() - indent:length()
             if length > maxlength then
@@ -473,7 +473,7 @@ function nest_xml(t, meta, indentlevel)
 
     for frag_key, key in pairs(inlines) do
         if meta.comments[key] then
-            fragments[frag_key] = '%s%s<!-- %s -->':format(fragments[frag_key], ' ':rep(maxlength - fragments[frag_key]:trim():length() + 1), meta.comments[key])
+            fragments[frag_key] = ('%s%s<!-- %s -->'):format(fragments[frag_key], (' '):rep(maxlength - fragments[frag_key]:trim():length() + 1), meta.comments[key])
         end
     end
 
@@ -491,11 +491,11 @@ function config.unregister(settings, key)
     settings_map[settings].refresh[key] = nil
 end
 
-windower.register_event('load', 'logout', 'login', function()
-    for _, settings in settings_map:it() do
-        config.reload(settings)
-    end
-end)
+-- windower.register_event('load', 'logout', 'login', function()
+--     for _, settings in settings_map:it() do
+--         config.reload(settings)
+--     end
+-- end)
 
 return config
 

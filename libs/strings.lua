@@ -4,8 +4,8 @@
 
 _libs = _libs or {}
 
-require('functions')
-require('maths')
+require('libs.functions')
+require('libs.maths')
 
 local functions, math = _libs.functions, _libs.maths
 local table = require('table')
@@ -18,7 +18,7 @@ _meta = _meta or {}
 
 debug.setmetatable('', {
     __index = function(str, k)
-        return string[k] or type(k) == 'number' and string.sub(str, k, k) or (_raw and _raw.error or error)('"%s" is not defined for strings':format(tostring(k)), 2)
+        return string[k] or type(k) == 'number' and string.sub(str, k, k) or (_raw and _raw.error or error)(('"%s" is not defined for strings'):format(tostring(k)), 2)
     end,
     __unm = functions.negate .. functions.equals,
     __unp = functions.equals,
@@ -214,42 +214,42 @@ function string.empty(str)
     return str == ''
 end
 
-(function()
-    -- Returns a monowidth hex representation of each character of a string, optionally with a separator between chars.
-    local hex = string.zfill-{2} .. math.hex .. string.byte
-    function string.hex(str, sep, from, to)
-        return str:slice(from, to):split():map(hex):concat(sep or '')
-    end
+-- (function()
+    -- -- Returns a monowidth hex representation of each character of a string, optionally with a separator between chars.
+    -- local hex = string.zfill-{2} .. math.hex .. string.byte
+    -- function string.hex(str, sep, from, to)
+    --     return str:slice(from, to):split():map(hex):concat(sep or '')
+    -- end
 
-    -- Returns a monowidth binary representation of every char of the string, optionally with a separator between chars.
-    local binary = string.zfill-{8} .. math.binary .. string.byte
-    function string.binary(str, sep, from, to)
-        return str:slice(from, to):split():map(binary):concat(sep or '')
-    end
+    -- -- Returns a monowidth binary representation of every char of the string, optionally with a separator between chars.
+    -- local binary = string.zfill-{8} .. math.binary .. string.byte
+    -- function string.binary(str, sep, from, to)
+    --     return str:slice(from, to):split():map(binary):concat(sep or '')
+    -- end
 
-    -- Returns a string parsed from a hex-represented string.
-    local hex_r = string.char .. tonumber-{16}
-    function string.parse_hex(str)
-        local interpreted_string = str:gsub('0x', ''):gsub('[^%w]', '')
-        if #interpreted_string % 2 ~= 0  then
-            (_raw and _raw.error or error)('Invalid input string length', 2)
-        end
+    -- -- Returns a string parsed from a hex-represented string.
+    -- local hex_r = string.char .. tonumber-{16}
+    -- function string.parse_hex(str)
+    --     local interpreted_string = str:gsub('0x', ''):gsub('[^%w]', '')
+    --     if #interpreted_string % 2 ~= 0  then
+    --         (_raw and _raw.error or error)('Invalid input string length', 2)
+    --     end
 
-        return (interpreted_string:gsub('%w%w', hex_r))
-    end
+    --     return (interpreted_string:gsub('%w%w', hex_r))
+    -- end
 
-    -- Returns a string parsed from a binary-represented string.
-    local binary_r = string.char .. tonumber-{2}
-    local binary_pattern = '[01]':rep(8)
-    function string.parse_binary(str)
-        local interpreted_string = str:gsub('0b', ''):gsub('[^01]', '')
-        if #interpreted_string % 8 ~= 0 then
-            (_raw and _raw.error or error)('Invalid input string length', 2)
-        end
+    -- -- Returns a string parsed from a binary-represented string.
+    -- local binary_r = string.char .. tonumber-{2}
+    -- local binary_pattern = ('[01]'):rep(8)
+    -- function string.parse_binary(str)
+    --     local interpreted_string = str:gsub('0b', ''):gsub('[^01]', '')
+    --     if #interpreted_string % 8 ~= 0 then
+    --         (_raw and _raw.error or error)('Invalid input string length', 2)
+    --     end
 
-        return (interpreted_string:gsub(binary_pattern, binary_r))
-    end
-end)()
+    --     return (interpreted_string:gsub(binary_pattern, binary_r))
+    -- end
+-- end)()
 
 -- Returns a string with Lua pattern characters escaped.
 function string.escape(str)

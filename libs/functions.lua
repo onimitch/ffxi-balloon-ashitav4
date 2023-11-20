@@ -17,7 +17,7 @@ local functions, boolean = functions, boolean
 functions.empty = function() end
 
 debug.setmetatable(false, {__index = function(_, k)
-    return boolean[k] or (_raw and _raw.error or error)('"%s" is not defined for booleans':format(tostring(k)), 2)
+    return boolean[k] or (_raw and _raw.error or error)(('"%s" is not defined for booleans'):format(tostring(k)), 2)
 end})
 
 for _, t in pairs({functions, boolean, math, string, table}) do
@@ -147,7 +147,8 @@ end
 
 -- Schedules the current function to run delayed by the provided time in seconds and returns the coroutine
 function functions.schedule(fn, time, ...)
-    return coroutine.schedule(fn:prepare(...), time)
+    return ashita.tasks.once(time, fn:prepare(...))
+    -- return coroutine.schedule(fn:prepare(...), time)
 end
 
 -- Returns a function that, when called, will execute the underlying function delayed by the provided number of seconds
@@ -166,16 +167,16 @@ function functions.loop(fn, interval, cond)
     end
 
     if type(cond) == 'number' then
-        cond = function()
+        cond = (function()
             local i = 0
             local lim = cond
             return function()
                 i = i + 1
                 return i <= lim
             end
-        end()
+        end)()
     end
-    cond = cond or true:fn()
+    cond = cond or (true):fn()
 
     return coroutine.schedule(function()
         while cond() do
@@ -213,7 +214,7 @@ local function index(fn, key)
         end
     end
 
-    (_raw and _raw.error or error)('"%s" is not defined for functions':format(tostring(key)), 2)
+    (_raw and _raw.error or error)(('"%s" is not defined for functions'):format(tostring(key)), 2)
 end
 
 local function add(fn, args)
@@ -355,7 +356,7 @@ function table.lookup(t, ref, key)
     return ref[t[key]]
 end
 
-table.it = function()
+table.it = (function()
     local it = function(t)
         local key
 
@@ -379,7 +380,7 @@ table.it = function()
         local fn = type(index) == 'table' and index.it or index(t, 'it') or it
         return (fn == table.it and it or fn)(t)
     end
-end()
+end)()
 
 -- Applies function fn to all values of the table and returns the resulting table.
 function table.map(t, fn)

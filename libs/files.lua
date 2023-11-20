@@ -4,8 +4,8 @@ File handler.
 
 _libs = _libs or {}
 
-require('strings')
-require('tables')
+require('libs.strings')
+require('libs.tables')
 
 local string, table = _libs.strings, _libs.tables
 
@@ -21,7 +21,7 @@ end
 -- Creates a new file. Creates path, if necessary.
 function files.create(f)
     f:create_path()
-    local fh = io.open(windower.addon_path .. f.path, 'w')
+    local fh = io.open(addon.path .. f.path, 'w')
     fh:write('')
     fh:close()
 
@@ -44,7 +44,7 @@ function files.exists(f)
         path = f.path
     end
 
-    return windower.file_exists(windower.addon_path .. path)
+    return ashita.fs.exists(addon.path .. path)
 end
 
 -- Checks existance of a number of paths, returns the first that exists.
@@ -77,7 +77,7 @@ function files.read(f)
         path = f.path
     end
 
-    local fh = io.open(windower.addon_path .. path, 'r')
+    local fh = io.open(addon.path .. path, 'r')
     local content = fh:read('*all*')
     fh:close()
 
@@ -102,21 +102,18 @@ function files.create_path(f)
         path = f.path:match('(.*)[/\\].-')
 
         if not path then
-            return nil, 'File path already in addon directory: ' .. windower.addon_path .. f.path
+            return nil, 'File path already in addon directory: ' .. addon.path .. f.path
         end
     end
 
-    newpath = windower.addon_path
+    newpath = addon.path
     for dir in path:psplit('[/\\]'):filter(-''):it() do
         newpath = newpath .. dir .. '/'
 
-        if not windower.dir_exists(newpath) then
-            local res, err = windower.create_dir(newpath)
-            if not res then
-                if err then
-                    return nil, err .. ': ' .. newpath
-                end
+        if not ashita.fs.exists(newpath) then
+            ashita.fs.create_dir(newpath)
 
+            if not ashita.fs.exists(newpath) then
                 return nil, 'Unknown error trying to create path ' .. newpath
             end
         end
@@ -155,7 +152,7 @@ function files.it(f)
         path = f.path
     end
 
-    return io.lines(windower.addon_path .. path)
+    return io.lines(addon.path .. path)
 end
 
 -- Write to file. Overwrites everything within the file, if present.
@@ -188,7 +185,7 @@ function files.write(f, content, flush)
         content = table.concat(content)
     end
 
-    local fh = io.open(windower.addon_path .. path, 'w')
+    local fh = io.open(addon.path .. path, 'w')
     fh:write(content)
     if flush then
         fh:flush()
@@ -224,7 +221,7 @@ function files.append(f, content, flush)
         path = f.path
     end
 
-    local fh = io.open(windower.addon_path .. path, 'a')
+    local fh = io.open(addon.path .. path, 'a')
     fh:write(content)
     if flush then
         fh:flush()

@@ -4,13 +4,13 @@
 
 _libs = _libs or {}
 
-require('tables')
-require('lists')
-require('sets')
-require('strings')
+require('libs.tables')
+require('libs.lists')
+require('libs.sets')
+require('libs.strings')
 
 local table, list, set, string = _libs.tables, _libs.lists, _libs.sets, _libs.strings
-local files = require('files')
+local files = require('libs.files')
 
 local xml = {}
 
