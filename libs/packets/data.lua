@@ -152,7 +152,7 @@ data.incoming[0x038] = {name='Entity Animation',    description='Sent when a mod
 data.incoming[0x039] = {name='Env. Animation',      description='Sent to force animations to specific objects.'}
 data.incoming[0x03A] = {name='Independ. Animation', description='Used for arbitrary battle animations that are unaccompanied by an action packet.'}
 data.incoming[0x03C] = {name='Shop',                description='Displays items in a vendors shop.'}
-data.incoming[0x03D] = {name='Value',               description='Returns the value of an item.'}
+data.incoming[0x03D] = {name='Shop Value/Sale',     description='Returns the value of an item or notice it has been sold.'}
 data.incoming[0x03E] = {name='Open Buy/Sell',       description='Opens the buy/sell menu for vendors.'}
 data.incoming[0x03F] = {name='Shop Buy Response',   description='Sent when you buy something from normal vendors.'}
 data.incoming[0x041] = {name='Blacklist',           description='Contains player ID and name for blacklist.'}
@@ -200,9 +200,11 @@ data.incoming[0x08D] = {name='Job Points',          description='Contains all jo
 data.incoming[0x0A0] = {name='Party Map Marker',    description='Marks where players are on your map.'}
 data.incoming[0x0AA] = {name='Spell List',          description='Packet that shows the spells that you know.'}
 data.incoming[0x0AC] = {name='Ability List',        description='Packet that shows your current abilities and traits.'}
+data.incoming[0x0AD] = {name='MMM List',            description='Packet that shows your current Moblin Maze Mongers Vouchers and Runes.'}
 data.incoming[0x0AE] = {name='Mount List',          description='Packet that shows your current mounts.'}
 data.incoming[0x0B4] = {name='Seek AnonResp',       description='Server response sent after you put up party or anon flag.'}
 data.incoming[0x0B5] = {name='Help Desk Open',      description='Sent when you open the Help Desk submenu.'}
+data.incoming[0x0BF] = {name='Reservation Response',description='Sent to inform the client about the status of entry to an instanced area.'}
 data.incoming[0x0C8] = {name='Party Struct Update', description='Updates all party member info in one struct. No player vital data (HP/MP/TP) or names are sent here.'}
 data.incoming[0x0C9] = {name='Show Equip',          description='Shows another player your equipment after using the Check command.'}
 data.incoming[0x0CA] = {name='Bazaar Message',      description='Shows another players bazaar message after using the Check command or sets your own on zoning.'}

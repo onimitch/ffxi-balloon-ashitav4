@@ -2,16 +2,21 @@
     Functions that facilitate loading, parsing, manipulating and storing of config files.
 ]]
 
+_libs = _libs or {}
+
+require('tables')
+require('sets')
+require('lists')
+require('strings')
+
+local table, set, list, string = _libs.tables, _libs.sets, _libs.lists, _libs.strings
+local xml = require('xml')
+local files = require('files')
+local json = require('json')
+
 local config = {}
 
-_libs = _libs or {}
 _libs.config = config
-_libs.tables = _libs.tables or require('tables')
-_libs.sets = _libs.sets or require('sets')
-_libs.lists = _libs.lists or require('lists')
-_libs.strings = _libs.strings or require('strings')
-_libs.xml = _libs.xml or require('xml')
-_libs.files = _libs.files or require('files')
 
 local error = error or print+{'Error:'}
 local warning = warning or print+{'Warning:'}
@@ -47,7 +52,7 @@ function config.load(filepath, defaults)
 
     -- Settings member variables, in separate struct
     local meta = {}
-    meta.file = _libs.files.new(filepath, true)
+    meta.file = files.new(filepath, true)
     meta.original = T{global = table.copy(settings)}
     meta.chars = S{}
     meta.comments = {}
@@ -85,10 +90,10 @@ function parse(settings)
     local meta = settings_map[settings]
 
     if meta.file.path:endswith('.json') then
-        parsed = _libs.json.read(meta.file)
+        parsed = json.read(meta.file)
 
     elseif meta.file.path:endswith('.xml') then
-        parsed, err = _libs.xml.read(meta.file)
+        parsed, err = xml.read(meta.file)
 
         if not parsed then
             error(err or 'XML error: Unknown error.')
@@ -110,7 +115,7 @@ function parse(settings)
         local full_parsed = parsed.global
         local player = windower.ffxi.get_player()
         if player then
-            full_parsed = full_parsed:update(parsed[player.name:lower()], true)
+            full_parsed = table.update(full_parsed, rawget(parsed, player.name:lower()), true)
         end
 
         return settings:update(full_parsed, true)
@@ -128,7 +133,7 @@ function parse(settings)
 
     local player = windower.ffxi.get_player()
     if player then
-        full_parsed = full_parsed:update(parsed[player.name:lower()], true)
+        full_parsed = table.update(full_parsed, rawget(parsed, player.name:lower()), true)
     end
 
     return merge(settings, full_parsed)
@@ -143,6 +148,10 @@ function merge(t, t_merge, path)
         keys[tostring(key):lower()] = key
     end
 
+    if not t_merge then
+        return t
+    end
+    
     for lkey, val in pairs(t_merge) do
         local key = keys[lkey:lower()]
         if not key then
@@ -333,7 +342,7 @@ function config.save(t, char)
     end
 
     meta.original[char]:update(t)
-	
+
     if char == 'global' then
         meta.original = T{global = meta.original.global}
         meta.chars = S{}

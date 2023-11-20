@@ -3,10 +3,15 @@
 ]]
 
 _libs = _libs or {}
-_libs.functions = true
+
+local string, math, table, coroutine = require('string'), require('math'), require('table'), require('coroutine')
 
 functions = {}
 boolean = {}
+
+_libs.functions = functions
+
+local functions, boolean = functions, boolean
 
 -- The empty function.
 functions.empty = function() end
@@ -67,7 +72,7 @@ end
 function functions.prepare(fn, ...)
     local args = {...}
     return function()
-        fn(unpack(args))
+        return fn(unpack(args))
     end
 end
 
@@ -140,18 +145,18 @@ function functions.it(fn, ...)
     end
 end
 
--- Schedules the current function to run delayed by the provided time in seconds
+-- Schedules the current function to run delayed by the provided time in seconds and returns the coroutine
 function functions.schedule(fn, time, ...)
-    coroutine.schedule(fn:prepare(...), time)
+    return coroutine.schedule(fn:prepare(...), time)
 end
 
 -- Returns a function that, when called, will execute the underlying function delayed by the provided number of seconds
 function functions.delay(fn, time, ...)
-	local args = {...}
+    local args = {...}
 
-	return function()
-		fn:schedule(time, unpack(args))
-	end
+    return function()
+        fn:schedule(time, unpack(args))
+    end
 end
 
 -- Returns a wrapper table representing the provided function with additional functions:
@@ -223,6 +228,7 @@ end
 -- * fn+{...} partially applies a function to arguments.
 -- * fn-{...} partially applies a function to arguments from the end.
 -- * fn1..fn2 pipes input from fn2 to fn1.
+
 debug.setmetatable(functions.empty, {
     __index = index,
     __add = add,
@@ -269,7 +275,7 @@ end
 
 -- Returns true if two values are the same.
 function boolean._is(val1, val2)
-    return val1 ~= val2
+    return val1 == val2
 end
 
 --[[
@@ -489,7 +495,7 @@ function string.map(str, fn)
 end
 
 --[[
-Copyright © 2013-2015, Windower
+Copyright Â© 2013-2015, Windower
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:

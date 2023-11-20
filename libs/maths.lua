@@ -3,8 +3,15 @@
 ]]
 
 _libs = _libs or {}
-_libs.maths = true
-_libs.functions = _libs.functions or require('functions')
+
+require('functions')
+
+local functions = _libs.functions
+local string = require('string')
+
+local math = require('math')
+
+_libs.maths = math
 
 _raw = _raw or {}
 _raw.math = setmetatable(_raw.math or {}, {__index = math})
@@ -26,7 +33,7 @@ math.phi = (1 + 5:sqrt())/2
 -- Rounds to prec decimal digits. Accepts negative numbers for precision.
 function math.round(num, prec)
     local mult = 10^(prec or 0)
-    return ((num * mult + 0.5) / mult):floor()
+    return (num * mult + 0.5):floor() / mult 
 end
 
 -- Returns the sign of num, -1 for a negative number, +1 for a positive number and 0 for 0.

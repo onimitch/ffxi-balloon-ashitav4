@@ -1,17 +1,20 @@
 --[[
-A library to facilitate packet usage 
+A library to facilitate packet usage
 ]]
+
+_libs = _libs or {}
+
+require('lists')
+require('maths')
+require('strings')
+require('functions')
+require('pack')
+
+local table = require('table')
 
 local packets = {}
 
-_libs = _libs or {}
 _libs.packets = packets
-_libs.lists = _libs.lists or require('lists')
-_libs.maths = _libs.maths or require('maths')
-_libs.strings = _libs.strings or require('strings')
-_libs.functions = _libs.functions or require('functions')
-
-require('pack')
 
 if not warning then
     warning = print+{_addon.name and '%s warning:':format(_addon.name) or 'Warning:'}
@@ -65,7 +68,7 @@ local sizes = {
 }
 
 -- This defines whether to treat a type with brackets at the end as an array or something special
-local non_array_types = S{'bit', 'data', 'char'} 
+local non_array_types = S{'bit', 'data', 'char'}
 
 -- Pattern to match variable size array
 local pointer_pattern = '(.+)%*'
@@ -96,8 +99,8 @@ local size
 size = function(fields, count)
     -- A single field
     if fields.ctype then
-        local bits, type_count, type = parse_type(fields)
-        return bits or count * sizes[type]
+        local bits, _, type = parse_type(fields)
+        return bits or type == 'char' and 8 or count and count * sizes[type] or 0
     end
 
     -- A reference field
@@ -143,7 +146,7 @@ parse = function(fields, data, index, max, lookup, depth)
                         if lookup then
                             -- Look up index name in provided table
                             local resource = lookup[1][count + lookup[2] - 1]
-                            field.label = '%s %s':format(resource and resource.name or 'Unknown %d':format(count + lookup[2] - 1), field.label)
+                            field.label = '%s %s':format(resource and resource.english or 'Unknown %d':format(count + lookup[2] - 1), field.label)
                         else
                             -- Just increment numerically
                             field.label = '%s %d':format(field.label, count)
@@ -293,7 +296,7 @@ end
 -- If data is a string it parses an existing packet, otherwise it will create
 -- a new packet table for injection. In that case, data can ba an optional
 -- table containing values to initialize the packet to.
--- 
+--
 -- Example usage
 --  Injection:
 --      local packet = packets.new('outgoing', 0x050, {
@@ -307,7 +310,7 @@ end
 --      packet['Inventory Index'] = 27  -- 27th item in the inventory
 --      packet['Equipment Slot'] = 15   -- 15th slot, left ring
 --      packets.inject(packet)
--- 
+--
 --  Parsing:
 --      windower.register_event('outgoing chunk', function(id, data)
 --          if id == 0x0B6 then -- outgoing /tell
@@ -390,6 +393,11 @@ function packets.new(dir, id, values, ...)
     return packet
 end
 
+local lookup = function(packet, field)
+    local val = packet[field.label]
+    return field.enc and val:encode(field.enc) or val
+end
+
 -- Returns binary data from a packet
 function packets.build(packet)
     local fields = packets.fields(packet._dir, packet._id, packet._raw, unpack(packet._args or {}))
@@ -399,7 +407,7 @@ function packets.build(packet)
     end
 
     local pack_string = fields:map(make_pack_string):concat()
-    local data = pack_string:pack(fields:map(table.lookup-{packet, 'label'}):unpack())
+    local data = pack_string:pack(fields:map(lookup+{packet}):unpack())
     local rem = #data % 4
     if rem ~= 0 then
         data = data .. 0:char():rep(4 - rem)

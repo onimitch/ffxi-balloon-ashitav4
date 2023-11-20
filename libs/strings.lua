@@ -3,9 +3,16 @@
 ]]
 
 _libs = _libs or {}
-_libs.strings = true
-_libs.functions = _libs.functions or require('functions')
-_libs.math = _libs.math or require('maths')
+
+require('functions')
+require('maths')
+
+local functions, math = _libs.functions, _libs.maths
+local table = require('table')
+
+local string = require('string')
+
+_libs.strings = string
 
 _meta = _meta or {}
 
@@ -34,8 +41,7 @@ function string.psplit(str, sep, maxsplit, include)
     return str:split(sep, maxsplit, include, false)
 end
 
--- Splits a string into a table by a separator string.
-function string.split(str, sep, maxsplit, include, pattern)
+local rawsplit = function(str, sep, maxsplit, include, raw)
     if not sep or sep == '' then
         local res = {}
         local key = 0
@@ -44,17 +50,12 @@ function string.split(str, sep, maxsplit, include, pattern)
             res[key] = c
         end
 
-        if _meta.L then
-            res.n = key
-            return setmetatable(res, _meta.L)
-        end
-
-        return setmetatable(res, _meta.T and _meta.T or nil)
+        return res, key
     end
 
     maxsplit = maxsplit or 0
-    if pattern == nil then
-        pattern = true
+    if raw == nil then
+        raw = true
     end
 
     local res = {}
@@ -64,7 +65,7 @@ function string.split(str, sep, maxsplit, include, pattern)
     local match
     while i <= #str + 1 do
         -- Find the next occurence of sep.
-        startpos, endpos = str:find(sep, i, pattern)
+        startpos, endpos = str:find(sep, i, raw)
         -- If found, get the substring and append it to the table.
         if startpos then
             match = str:sub(i, startpos - 1)
@@ -91,12 +92,23 @@ function string.split(str, sep, maxsplit, include, pattern)
         end
     end
 
+    return res, key
+end
+
+-- Splits a string into a table by a separator string.
+function string.split(str, sep, maxsplit, include, raw)
+    local res, key = rawsplit(str, sep, maxsplit, include, raw)
+
     if _meta.L then
         res.n = key
         return setmetatable(res, _meta.L)
     end
 
-    return setmetatable(res, _meta.T and _meta.T or nil)
+    if _meta.T then
+        return setmetatable(res, _meta.T)
+    end
+
+    return res
 end
 
 -- Alias to string.sub, with some syntactic sugar.
@@ -182,12 +194,12 @@ function string.capitalize(str)
     return table.concat(res, ' ')
 end
 
--- Takes a padding character pad and pads the string str to the left of it, until len is reached. pad defaults to a space.
+-- Takes a padding character pad and pads the string str to the left of it, until len is reached.
 function string.lpad(str, pad, len)
     return (pad:rep(len) .. str):sub(-(len > #str and len or #str))
 end
 
--- Takes a padding character pad and pads the string str to the right of it, until len is reached. pad defaults to a space.
+-- Takes a padding character pad and pads the string str to the right of it, until len is reached.
 function string.rpad(str, pad, len)
     return (str .. pad:rep(len)):sub(1, len > #str and len or #str)
 end
@@ -418,22 +430,19 @@ function string.chunks(str, size)
     end
 end
 
--- Returns a string decoded given the appropriate information.
-string.decode = (function()
-    local chunk_size = function(t)
-        local e, f = math.frexp(#t)
-        return f + math.ceil(e - 1.5)
-    end
+-- Returns a string decoded given the appropriate encoding.
+string.decode = function(str, encoding)
+    return (str:binary():chunks(encoding.bits):map(table.get+{encoding.charset} .. tonumber-{2}):concat():gsub('%z.*$', ''))
+end
 
-    return function(str, charset)
-        if type(charset) == 'string' then
-            local tmp = charset
-            charset = charset:sub(2):split()
-            charset[0] = charset:sub(1, 1)
-        end
-        return str:binary():chunks(chunk_size(charset)):map(table.get+{charset} .. tonumber-{2}):concat():gsub('%z+$', '')
+-- Returns a string encoded given the appropriate encoding.
+string.encode = function(str, encoding)
+    local binary = str:map(string.zfill-{encoding.bits} .. math.binary .. table.find+{encoding.charset})
+    if encoding.terminator then
+        binary = binary .. encoding.terminator(str)
     end
-end)()
+    return binary:rpad('0', (#binary / 8):ceil() * 8):parse_binary()
+end
 
 -- Returns a plural version of a string, if the provided table contains more than one element.
 -- Defaults to appending an s, but accepts an option string as second argument which it will the string with.

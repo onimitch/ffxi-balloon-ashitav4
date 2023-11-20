@@ -5,7 +5,7 @@ The primary functionality provided here are iterators which allow for
 easy traversal of the sub-tables within the packet. Example:
 
 =======================================================================================
-require 'actions'
+require('actions')
 
 function event_action(act)
   action = Action(act) -- constructor
@@ -27,9 +27,13 @@ end
 ]]
 
 _libs = _libs or {}
+
+require('tables')
+
+local table = _libs.tables
+local res = require('resources')
+
 _libs.actions = true
-_libs.tables = _libs.tables or require 'tables'
-local res = require 'resources'
 
 local category_strings = {
     'melee',
@@ -51,7 +55,6 @@ local category_strings = {
 
 -- ActionPacket operations
 ActionPacket = {}
-
 
 local actionpacket = {}
 -- Constructor for Actions.
@@ -114,9 +117,10 @@ local function act_to_string(original,act)
         offset = offset + 36
         for n = 1,act.targets[i].action_count do
             react = assemble_bit_packed(react,act.targets[i].actions[n].reaction,offset,offset+5)
-            react = assemble_bit_packed(react,act.targets[i].actions[n].animation,offset+5,offset+16)
-            react = assemble_bit_packed(react,act.targets[i].actions[n].effect,offset+16,offset+21)
-            react = assemble_bit_packed(react,act.targets[i].actions[n].stagger,offset+21,offset+27)
+            react = assemble_bit_packed(react,act.targets[i].actions[n].animation,offset+5,offset+17)
+            react = assemble_bit_packed(react,act.targets[i].actions[n].effect,offset+17,offset+21)
+            react = assemble_bit_packed(react,act.targets[i].actions[n].stagger,offset+21,offset+24)
+            react = assemble_bit_packed(react,act.targets[i].actions[n].knockback,offset+24,offset+27)
             react = assemble_bit_packed(react,act.targets[i].actions[n].param,offset+27,offset+44)
             react = assemble_bit_packed(react,act.targets[i].actions[n].message,offset+44,offset+54)
             react = assemble_bit_packed(react,act.targets[i].actions[n].unknown,offset+54,offset+85)
@@ -150,7 +154,6 @@ local function act_to_string(original,act)
     end
     return react
 end
-
 
 -- Opens a listener event for the action packet at the incoming chunk level before modifications.
 -- Passes in the documented act structures for the original and modified packets.
@@ -197,9 +200,9 @@ end
 
 function actionpacket:get_spell()
     local info = self:get_targets()():get_actions()():get_basic_info()
-    if rawget(info,'resource') and rawget(info,'spell_id') and rawget(rawget(res,rawget(info,'resource')),rawget(info,'spell_id')) then
+    if rawget(info,'resource') and rawget(info,'spell_id') and rawget(res[rawget(info,'resource')],rawget(info,'spell_id')) then
         local copied_line = {}
-        for i,v in pairs(rawget(rawget(res,rawget(info,'resource')),rawget(info,'spell_id'))) do
+        for i,v in pairs(rawget(res[rawget(info,'resource')],rawget(info,'spell_id'))) do
             rawset(copied_line,i,v)
         end
         setmetatable(copied_line,getmetatable(res[rawget(info,'resource')][rawget(info,'spell_id')]))
@@ -220,7 +223,7 @@ end
 
 --Returns the id of the actor
 function actionpacket:get_id()
-	return self.raw['actor_id']
+    return self.raw['actor_id']
 end
 
 -- Returns an iterator for this actionpacket's targets
@@ -383,13 +386,13 @@ expandable[{1,  2,  67, 77, 110,157,
             292,293,294,295,296,297,
             298,299,300,301,302,317,
             352,353,379,419,522,576,
-            577,648,650,732}]         = {subject="target", verb="loses",   objects={"HP"}         }
+            577,648,650,732,767,768}]         = {subject="target", verb="loses",   objects={"HP"}         }
 expandable[{122,167,383}]             = {subject="actor",  verb="gains",   objects={"HP"}         }
 expandable[{7,  24, 102,103,238,263,
         306,318,357,367,373,382,384,
         385,386,387,388,389,390,391,
         392,393,394,395,396,397,398,
-        539,587,606,651}]             = {subject="target", verb="gains",   objects={"HP"}         }
+        539,587,606,651,769,770}]             = {subject="target", verb="gains",   objects={"HP"}         }
 expandable[{25, 224,276,358,451,588}] = {subject="target", verb="gains",   objects={"MP"}         }
 expandable[{161,187,227,274,281}]     = {subject="actor",  verb="steals",  objects={"HP"}         }
 expandable[{165,226,454,652}]         = {subject="actor",  verb="steals",  objects={"TP"}         }
@@ -480,7 +483,6 @@ function action:get_message_id()
     return message_id or 0
 end
 
-
 ---------------------------------------- Additional Effects ----------------------------------------
 local add_effect_animation_strings = {}
 
@@ -517,12 +519,16 @@ add_effect_animation_strings['weaponskill_finish'] = {
     [12]  = 'scission',
     [13]  = 'detonation',
     [14]  = 'impaction',
+    [15]  = 'radiance',
+    [16]  = 'umbra',
     }
 
 add_effect_animation_strings['spell_finish'] = add_effect_animation_strings['weaponskill_finish']
+add_effect_animation_strings['mob_tp_finish'] = add_effect_animation_strings['weaponskill_finish']
+add_effect_animation_strings['avatar_tp_finish'] = add_effect_animation_strings['weaponskill_finish']
 
-local add_effect_effect_strings = {
-    }
+local add_effect_effect_strings = {}
+
 function action:get_add_effect()
     if not rawget(rawget(self,'raw'),'has_add_effect') then return false end
     local animation = self:get_add_effect_animation_string()
@@ -590,11 +596,8 @@ function action:get_additional_effect_conclusion()
     return msg_id_to_conclusion(rawget(rawget(self,'raw'),'spike_effect_message'))
 end
 
-
-
-
 --[[
-Copyright (c) 2013, Suji
+Copyright © 2013, Suji
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

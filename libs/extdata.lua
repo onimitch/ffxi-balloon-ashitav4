@@ -1,13 +1,15 @@
 -- Extdata lib first pass
 
 _libs = _libs or {}
-_libs.actions = true
-_libs.tables = _libs.tables or require 'tables'
-local res = require 'resources'
-_libs.strings = _libs.strings or require 'strings'
-_libs.functions = _libs.functions or require 'functions'
-require 'pack'
 
+require('tables')
+require('strings')
+require('functions')
+require('pack')
+
+local table, string, functions = _libs.tables, _libs.strings, _libs.functions
+local math = require('math')
+local res = require('resources')
 
 -- MASSIVE LOOKUP TABLES AND OTHER CONSTANTS
 
@@ -171,6 +173,8 @@ augment_values = {
         [0x07C] = {{stat="Pet: Acc.", offset=1}, {stat="Pet: R.Acc.", offset=1}, {stat="Pet: Atk.", offset=1}, {stat="Pet: R.Atk.", offset=1}},
         [0x07D] = {{stat="Pet: M.Acc.", offset=1}, {stat="Pet: M.Dmg.", offset=1}},
         [0x07E] = {{stat='Pet: Magic Damage', offset=1}},
+        [0x07F] = {{stat="Pet: Magic dmg. taken ", offset=1,multiplier=-1,percent=true}},
+
 
         [0x080] = {{stat="Pet:",offset = 0}},
         --[0x081: Accuracy +1 Ranged Acc. +0 | value + 1
@@ -289,7 +293,7 @@ augment_values = {
         [0x14B] = {{stat='"Waltz" ability delay ', offset=1,multiplier=-1}},
         [0x14C] = {{stat="Sklchn.dmg.", offset=1,percent=true}},
         [0x14D] = {{stat='"Conserve TP"', offset=1}},
-        [0x14E] = {{stat="Magic burst mdg.", offset=1,percent=true}},
+        [0x14E] = {{stat="Magic burst dmg.", offset=1,percent=true}},
         [0x14F] = {{stat="Mag. crit. hit dmg. ", offset=1,percent=true}},
         [0x150] = {{stat='"Sic" and "Ready" ability delay ', offset=1,multiplier=-1}},
         [0x151] = {{stat="Song recast delay ", offset=1,multiplier=-1}},
@@ -303,7 +307,7 @@ augment_values = {
         [0x15E] = {{stat="Occ. maximizes magic accuracy ", offset=1,percent=true}},
         [0x15F] = {{stat="Occ. quickens spellcasting ", offset=1,percent=true}},
         [0x160] = {{stat="Occ. grants dmg. bonus based on TP ", offset=1,percent=true}},
-        [0x161] = {{stat="TP Bonus ", offset=1, multiplier=5}},
+        [0x161] = {{stat="TP Bonus ", offset=1, multiplier=50}},
         [0x162] = {{stat="Quadruple Attack ", offset=1}},
 
         [0x164] = {{stat='Potency of "Cure" effect received', offset=1, percent=true}},
@@ -610,6 +614,14 @@ augment_values = {
         [0x436] = {{stat="Sniper Shot:DMG:", offset=1,multiplier=5,percent=true}},
         [0x437] = {{stat="Detonator:DMG:", offset=1,multiplier=5,percent=true}},
         [0x438] = {{stat="Weapon Skill:DMG:", offset=1,multiplier=5,percent=true}},
+
+        [0x480] = {{stat="DEF", offset=1,multiplier=10}},
+        [0x481] = {{stat="Evasion", offset=1,multiplier=3}},
+        [0x482] = {{stat="Mag. Evasion", offset=1,multiplier=3}},
+        [0x483] = {{stat="Phys. dmg. taken", offset=1,multiplier=-2,percent=true}},
+        [0x484] = {{stat="Magic dmg. taken", offset=1,multiplier=-2,percent=true}},
+        [0x485] = {{stat="Spell interruption rate down", offset=1,multiplier=-2,percent=true}},
+        [0x486] = {{stat="Occ. inc. resist. to stat. ailments", offset=1,multiplier=2}},
         
         [0x4E0] = {{stat="Enh. Mag. eff. dur. ", offset=1}},
         [0x4E1] = {{stat="Helix eff. dur. ", offset=1}},
@@ -650,22 +662,23 @@ augment_values = {
         [0x538] = {{stat='Enhances "Invigorate" effect', offset=0,multiplier=0}},
         [0x539] = {{stat='Enhances "Mantra" effect', offset=0,multiplier=0}},
 
-        [0x53C] = {{stat='Enhances "Protectra V" effect', offset=0,multiplier=0}},
+        [0x53C] = {{stat='Enhances "Afflatus Solace" effect', offset=0,multiplier=0}},
         [0x53D] = {{stat='Enhances "Martyr" effect', offset=0,multiplier=0}},
-        [0x53E] = {{stat='Enhances "Shellra V" effect', offset=0,multiplier=0}},
+        [0x53E] = {{stat='Enhances "Afflatus Misery" effect', offset=0,multiplier=0}},
         [0x53F] = {{stat='Enhances "Devotion" effect', offset=0,multiplier=0}},
         
-        [0x542] = {{stat='Increases Ancient Magic II damage', offset=0,multiplier=0}},
-        [0x543] = {{stat='Reduces Ancient Magic II casting time', offset=0,multiplier=0}},
-        [0x544] = {{stat='Increases Ancient Magic II accuracy', offset=0,multiplier=0}},
-        [0x545] = {{stat='Reduces Ancient Magic II MP cost', offset=0,multiplier=0}},
+        [0x542] = {{stat='Increases Ancient Magic damage and magic burst damage', offset=0,multiplier=0}},
+        [0x543] = {{stat='Increases Elemental Magic accuracy', offset=0,multiplier=0}},
+        [0x544] = {{stat='Increases Elemental Magic debuff time and potency', offset=0,multiplier=0}},
+        [0x545] = {{stat='Increases Aspir absorption amount', offset=0,multiplier=0}},
 
-        [0x548] = {{stat='Enhances "Dia III" effect', offset=0,multiplier=0}},
-        [0x549] = {{stat='Enhances "Slow II" effect', offset=0,multiplier=0}},
-        [0x54A] = {{stat='Enhances "Phalanx II" effect', offset=0,multiplier=0}},
-        [0x54B] = {{stat='Enhances "Bio III" effect', offset=0,multiplier=0}},
-        [0x54C] = {{stat='Enhances "Blind II" effect', offset=0,multiplier=0}},
-        [0x54D] = {{stat='Enhances "Paralyze II" effect', offset=0,multiplier=0}},
+        [0x548] = {{stat='Enfeebling Magic duration', offset=0,multiplier=0}},
+        [0x549] = {{stat='Magic Accuracy', offset=0,multiplier=0}},
+        [0x54A] = {{stat='Enhancing Magic duration', offset=0,multiplier=0}},
+        [0x54B] = {{stat='Enspell Damage', offset=0,multiplier=0}},
+        [0x54C] = {{stat='Accuracy', offset=0,multiplier=0}},
+        [0x54D] = {{stat='Immunobreak Chance', offset=0,multiplier=0}},
+		
         [0x54E] = {{stat='Enhances "Aura Steal" effect', offset=0,multiplier=0}},
         [0x54F] = {{stat='Enhances "Ambush" effect', offset=0,multiplier=0}},
         [0x550] = {{stat='Enhances "Feint" effect', offset=0,multiplier=0}},
@@ -686,9 +699,9 @@ augment_values = {
         [0x562] = {{stat='Enhances "Beast Affinity" effect', offset=0,multiplier=0}},
         [0x563] = {{stat='Enhances "Beast Healer" effect', offset=0,multiplier=0}},
         
-        [0x566] = {{stat='Enhances "Foe Sirvente" effect', offset=0,multiplier=0}},
+        [0x566] = {{stat='Enhances "Con Anima" effect', offset=0,multiplier=0}},
         [0x567] = {{stat='Enhances "Troubadour" effect', offset=0,multiplier=0}},
-        [0x568] = {{stat='Enh. "Adventurer\'s Dirge" effect', offset=0,multiplier=0}},
+        [0x568] = {{stat='Enhances "Con Brio" effect', offset=0,multiplier=0}},
         [0x569] = {{stat='Enhances "Nightingale" effect', offset=0,multiplier=0}},
         
         [0x56C] = {{stat='Enhances "Recycle" effect', offset=0,multiplier=0}},
@@ -701,10 +714,10 @@ augment_values = {
         [0x574] = {{stat='Enhances "Blade Bash" effect', offset=0,multiplier=0}},
         [0x575] = {{stat='Enhances "Ikishoten" effect', offset=0,multiplier=0}},
         
-        [0x578] = {{stat='Increases elem. ninjutsu III damage', offset=0,multiplier=0}},
+        [0x578] = {{stat='Enhances "Yonin" and "Innin" effect', offset=0,multiplier=0}},
         [0x579] = {{stat='Enhances "Sange" effect', offset=0,multiplier=0}},
         [0x57A] = {{stat='Enh. "Ninja Tool Expertise" effect', offset=0,multiplier=0}},
-        [0x57B] = {{stat='Reduces elem. ninjutsu III cast time', offset=0,multiplier=0}},
+        [0x57B] = {{stat='Enh. Ninj. Mag. Acc/Cast Time Red.', offset=0,multiplier=0}},
         
         [0x57E] = {{stat='Enhances "Deep Breathing" effect', offset=0,multiplier=0}},
         [0x57F] = {{stat='Enhances "Angon" effect', offset=0,multiplier=0}},
@@ -750,6 +763,8 @@ augment_values = {
         [0x5AF] = {{stat='Enhances "Rayke" effect', offset=0,multiplier=0}},
         [0x5B0] = {{stat='Enhances "Inspire" effect', offset=0,multiplier=0}},
         [0x5B1] = {{stat='Enhances "Sleight of Sword" effect', offset=0,multiplier=0}},
+
+        [0x5C0] = {{stat="Parrying rate", offset=1,percent=true}},
         
         [0x600] = {{stat="Backhand Blow:DMG:", offset=1,multiplier=5,percent=true}},
         [0x601] = {{stat="Spinning Attack:DMG:", offset=1,multiplier=5,percent=true}},
@@ -874,6 +889,9 @@ augment_values = {
         [0x1C] = {{stat="DMG:",offset=1}},
         [0x1D] = {{stat="DMG:",offset=256}},
         
+        [0x72] = {{stat='Weapon skill damage ',offset=1,percent=true}},
+        [0x73] = {{stat='Magic damage',offset=1}},
+        [0x74] = {{stat='Blood Pact Dmg.',offset=1}},
         [0x74] = {{stat='Blood Pact Dmg.',offset=1}},
         [0x75] = {{stat='"Avatar perpetuation cost"',offset=1}},
         [0x76] = {{stat='"Blood Pact" ability delay',offset=1}},
@@ -907,7 +925,7 @@ augment_values = {
         [0x9A] = {{stat='Pet: "Regen"',offset=1}},
         [0x9B] = {{stat='Pet: Haste',offset=1,percent=true}},
         [0x9C] = {{stat='Automaton: "Cure" potency ',offset=1,percent=true}},
-        [0x9C] = {{stat='Automaton: "Fast Cast"',offset=1}},
+        [0x9D] = {{stat='Automaton: "Fast Cast"',offset=1}},
         
         [0xAB] = {{stat='"Dual Wield"',offset=1}},
         [0xAC] = {{stat='Damage Taken ',offset=1,multiplier=-1,percent=true}},
@@ -1434,12 +1452,146 @@ soul_plates = {
     [0x15E] = "Magic Acquisition Bonus II",
     [0x15F] = "Magic Acquisition Level -5",
     [0x160] = "Magic Acquisition Level -10", -- 00 B0 F8 03
+    [0x161] = "Healing Potency Bonus",
+    [0x162] = "Healing Potency Bonus II",
+    [0x163] = "Healing Potency +40",
+    [0x164] = "Healing Potency +80",
+    [0x165] = "MP Recovery Bonus",
+    [0x166] = "MP Recovery Bonus II",
+    [0x167] = "MP Recovery +25",
+    [0x168] = "MP Recovery +50",
+    [0x169] = "TP Recovery Bonus",
+    [0x16A] = "TP Recovery Bonus II",
+    [0x16B] = "TP Recovery +25",
+    [0x16C] = "TP Recovery +50",
+    [0x16D] = "50% MP Conserve Rate Bonus",
+    [0x16E] = "50% MP Conserve Rate Bonus II",
+    [0x16F] = "50% MP Conserve Rate +15%",
+    [0x170] = "50% MP Conserve Rate +30%",
+    [0x171] = "100% MP Conserve Rate Bonus",
+    [0x172] = "100% MP Conserve Rate Bonus II",
+    [0x173] = "100% MP Conserve Rate +15%",
+    [0x174] = "100% MP Conserve Rate +30%",
+    [0x175] = "50% TP Conserve Rate Bonus",
+    [0x176] = "50% TP Conserve Rate Bonus II",
+    [0x177] = "50% TP Conserve Rate +15%",
+    [0x178] = "50% TP Conserve Rate +30%",
+    [0x179] = "100% TP Conserve Rate Bonus",
+    [0x17A] = "100% TP Conserve Rate Bonus II",
+    [0x17B] = "100% TP Conserve Rate +15%",
+    [0x17C] = "100% TP Conserve Rate +30%",
+    [0x17D] = "EXP Bonus",
+    [0x17E] = "EXP Bonus II",
+    [0x17F] = "EXP +15%",
+    [0x180] = "EXP +30%",
+    [0x181] = "Skill Improvement Rate Bonus",
+    [0x182] = "Skill Improvement Rate Bonus II",
+    [0x183] = "Skill Improvement Rate +15%",
+    [0x184] = "Skill Improvement Rate +30%",
+    [0x185] = "Trust Bonus",
+    [0x186] = "Trust Bonus II",
+    [0x187] = "Trust +15",
+    [0x188] = "Trust +30",
+
+    [0x195] = "Embiggen",
+    [0x196] = "Embiggen II",
+    [0x197] = "Minimize",
+    [0x198] = "Minimize II",
+
+    [0x19D] = "Gradual HP Max Bonus",
+    [0x19E] = "Diminishing HP Max Bonus",
+    [0x19F] = "Gradual MP Max Bonus",
+    [0x1A0] = "Diminishing MP Max Bonus",
+    [0x1A1] = "Gradual Attack Bonus",
+    [0x1A2] = "Diminishing Attack Bonus",
+    [0x1A3] = "Gradual Defense Bonus",
+    [0x1A4] = "Diminishing Defense Bonus",
+    [0x1A5] = "Gradual Magic Attack Bonus",
+    [0x1A6] = "Diminishing Magic Attack Bonus",
+    [0x1A7] = "Gradual Magic Defense Bonus",
+    [0x1A8] = "Diminishing Magic Defense Bonus",
+    [0x1A9] = "Gradual Accuracy Bonus",
+    [0x1B0] = "Diminishing Accuracy Bonus",
+    [0x1B1] = "Gradual Magic Accuracy Bonus",
+    [0x1B2] = "Diminishing Magic Accuracy Bonus",
+    [0x1B3] = "Gradual Evasion Bonus",
+    [0x1B4] = "Diminishing Evasion Bonus",
+    [0x1B5] = "Gradual Critial Hit Rate Bonus",
+    [0x1B6] = "Diminishing Critial Hit Rate Bonus",
+    [0x1B7] = "Gradual Interruption Rate Bonus",
+    [0x1B8] = "Diminishing Interruption Rate Bonus",
+    [0x1B9] = "Gradual EXP Bonus",
+    [0x1BA] = "Diminishing EXP Bonus",
+    [0x1BB] = "Resist Poison",
+    [0x1BC] = "Resist Sleep",
+    [0x1BD] = "Resist Blind",
+    [0x1BE] = "Resist Slow",
+    [0x1BF] = "Resist Paralysis",
+    [0x1C0] = "Resist Bind",
+    [0x1C1] = "Resist Silence",
+    [0x1C2] = "Bird Killer",
+    [0x1C3] = "Amorph Killer",
+    [0x1C4] = "Lizard Killer",
+    [0x1C5] = "Aquan Killer",
+    [0x1C6] = "Plantoid Killer",
+    [0x1C7] = "Beast Killer",
+    [0x1C8] = "Demon Killer",
+    [0x1C9] = "Dragon Killer",
+    [0x1CA] = "Double Attack",
+    [0x1CB] = "Double Attack II",
+    [0x1CC] = "Double Attack Rate +15%",
+    [0x1CD] = "Double Attack Rate +30%",
+    [0x1CE] = "Triple Attack",
+    [0x1CF] = "Triple Attack II",
+    [0x1D0] = "Triple Attack Rate +15%",
+    [0x1D1] = "Triple Attack Rate +30%",
+    [0x1D2] = "Counter",
+    [0x1D3] = "Counter II",
+    [0x1D4] = "Counter Rate +15%",
+    [0x1D5] = "Counter Rate +30%",
+    [0x1D6] = "Subtle Blow",
+    [0x1D7] = "Subtle Blow II",
+    [0x1D8] = "Subtle Blow Rate +15%",
+    [0x1D9] = "Subtle Blow Rate +30%",
+    [0x1DA] = "Savagery",
+    [0x1DB] = "Aggressive Aim",
+    [0x1DC] = "Martial Arts",
+    [0x1DD] = "Kick Attacks",
+    [0x1DE] = "Invigorate",
+    [0x1DF] = "Penance",
+    [0x1E0] = "Clear Mind",
+    [0x1E1] = "Divine Veil",
+    [0x1E2] = "Assassin",
+    [0x1E3] = "Aura Steal",
+    [0x1E4] = "Ambush",
+    [0x1E5] = "Shield Mastery",
+    [0x1E6] = "Iron Will",
+    [0x1E7] = "Guardian",
+    [0x1E8] = "Muted Soul",
+    [0x1E9] = "Desperate Blows",
+    [0x1EA] = "Carrot Broth",
+    [0x1EB] = "Herbal Broth",
+    [0x1EC] = "Fish Broth",
+    [0x1ED] = "Alchemist's Water",
+    [0x1EE] = "Meat Broth",
+    [0x1EF] = "Bug Broth",
+    [0x1F0] = "Carrion Broth",
+    [0x1F1] = "Seedbed Soil",
+    [0x1F2] = "Tree Sap",
+    [0x1F3] = "Beast Affinity",
+    [0x1F4] = "Beast Healer",
+    [0x1F5] = "Alertness",
+    [0x1F6] = "Recycle",
+    [0x1F7] = "Rapid Shot",
+    [0x1F8] = "Snapshot",
+    [0x1F9] = "Zanshin",
+    [0x1FA] = "Overwhelm",
+    [0x1FB] = "Ikishoten",
+    [0x1FC] = "Stealth",
+    [0x1FD] = "Dual Wield",
+    [0x1FE] = "Ninja Tool Expertise",
+    [0x1FF] = "Ninja Tool Supply",
 }
-
-
-
-
-
 
 -- TOOLS FOR HANDLING EXTDATA
 
@@ -1463,7 +1615,7 @@ function tools.bit.l_to_r_bit_packed(dat_string,start,stop)
     local c_count = math.ceil(stop/8)
     while c_count >= math.ceil((start+1)/8) do
         -- Grabs the most significant byte first and works down towards the least significant.
-        local cur_val = dat_string:byte(c_count)
+        local cur_val = dat_string:byte(c_count) or 0
         local scal = 1
         
         if c_count == math.ceil(stop/8) then -- Take the least significant bits of the most significant byte
@@ -1518,6 +1670,8 @@ function tools.aug.unpack_augment(sys,short)
         return short:byte(1), short:byte(2)
     elseif sys == 3 then
         return short:byte(1) + short:byte(2)%8*256,  math.floor(short:byte(2)%128/8)
+    elseif sys == 4 then
+        return short:byte(1), short:byte(2)
     end
 end
 
@@ -1582,7 +1736,12 @@ function decode.Augmented(str)
         rettab.trial_complete = str:byte(12)/128>=1
     end
     
-    if flag_2%64/32 >=1 then
+    if flag_2%16/8 >= 1 then -- Crafting shields
+        rettab.objective = str:byte(6)
+        local units = {30,50,100,100}
+        rettab.stage = math.max(1,math.min(4,str:byte(0x9)))
+        rettab.completion = str:unpack('H',7)/units[rettab.stage]
+    elseif flag_2%64/32 >=1 then
         rettab.augment_system = 2
         local path_map = {[0] = 'A',[1] = 'B', [2] = 'C', [3] = 'D'}
         local points_map = {[1] = 50, [2] = 80, [3] = 120, [4] = 170, [5] = 220, [6] = 280, [7] = 340, [8] = 410, [9] = 480, [10]=560, [11]=650, [12] = 750, [13] = 960, [14] = 980}
@@ -1590,6 +1749,11 @@ function decode.Augmented(str)
         rettab.rank = math.floor(str:byte(3)%128/4)
         rettab.RP = math.max(points_map[rettab.rank] or 0 - str:byte(6)*256 - str:byte(5),0)
         rettab.augments = tools.aug.augments_to_table(rettab.augment_system,str:sub(7,12))
+    elseif flag_2 == 131 then
+        rettab.augment_system = 4
+        local path_map = {[0] = 'A',[1] = 'B', [2] = 'C', [3] = 'D'}
+        rettab.path = path_map[math.floor(str:byte(5)%4)]
+        rettab.augments = {'Path: ' ..rettab.path}
     elseif flag_2/128 >= 1 then -- Evolith
         rettab.augment_system = 3
         local slot_type_map = {[0] = 'None', [1] = 'Filled Upside-down Triangle', [2] = 'Filled Diamond', [3] = 'Filled Star', [4] = 'Empty Triangle', [5] = 'Empty Square', [6] = 'Empty Circle', [7] = 'Empty Upside-down Triangle', [8] = 'Empty Diamond', [9] = 'Empty Star', [10] = 'Filled Triangle', [11] = 'Filled Square', [12] = 'Filled Circle', [13] = 'Empty Circle', [14] = 'Fire', [15] = 'Ice'}
@@ -1637,6 +1801,7 @@ function decode.Equipment(str)
     local flag_1_mapping = {
         [1] = decode.Enchanted,
         [2] = decode.Augmented,
+        [3] = decode.Augmented,
         }
     if flag_1_mapping[flag_1] then
         rettab = flag_1_mapping[flag_1](str:sub(1,12))
@@ -1652,18 +1817,21 @@ end
 
 function decode.Linkshell(str)
     local status_map = {[0]='Unopened',[1]='Linkshell',[2]='Pearlsack',[3]='Linkpearl',[4]='Broken'}
-    local name_end = string.find(str,string.char(0),10)
+    local name_end = #str
+    while str:byte(name_end) == 0 and name_end > 10 do
+        name_end = name_end - 1
+    end
     local name_map = {[0]="'",[1]="a",[2]='b',[3]='c',[4]='d',[5]='e',[6]='f',[7]='g',[8]='h',[9]='i',[10]='j',
         [11]='k',[12]='l',[13]='m',[14]='n',[15]='o',[16]='p',[17]='q',[18]='r',[19]='s',[20]='t',[21]='u',[22]='v',[23]='w',
-        [24]='x',[25]='yx',[26]='z',[27]='A',[28]='B',[29]='C',[30]='D',[31]='E',[32]='F',[33]='G',[34]='H',[35]='I',[36]='J',
+        [24]='x',[25]='y',[26]='z',[27]='A',[28]='B',[29]='C',[30]='D',[31]='E',[32]='F',[33]='G',[34]='H',[35]='I',[36]='J',
         [37]='K',[38]='L',[39]='M',[40]='N',[41]='O',[42]='P',[43]='Q',[44]='R',[45]='S',[46]='T',[47]='U',[48]='V',[49]='W',
         [50]='X',[51]='Y',[52]='Z'
         }
     local rettab = {type = 'Linkshell',
         linkshell_id = str:unpack('I'),
-        r  = 17*str:byte(7)%16,
+        r  = 17*(str:byte(7)%16),
         g  = 17*math.floor(str:byte(7)/16),
-        b  = 17*str:byte(8)%16,
+        b  = 17*(str:byte(8)%16),
         status_id = str:byte(9),
         status = status_map[str:byte(9)]}
     
@@ -1961,7 +2129,9 @@ id_mapping = {
 -- ACTUAL EXTDATA LIB FUNCTIONS
     
 local extdata = {}
-    
+
+_libs.extdata = extdata
+
 function extdata.decode(tab)
     if not tab then error('extdata.decode was passed a nil value') end
     if not tab.id or not tonumber(tab.id) then
