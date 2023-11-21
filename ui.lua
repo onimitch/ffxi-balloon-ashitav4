@@ -1,3 +1,8 @@
+local d3d = require('d3d8')
+local ffi = require('ffi')
+local C = ffi.C
+local d3d8dev = d3d.get_device()
+
 local ui = {}
 
 local text_setup = {
@@ -32,6 +37,12 @@ ui._scale = 1.0
 ui._global_show_portraits = true
 ui._theme_options = nil
 
+ui._sprite = nil
+ui._rect = ffi.new('RECT', { 0, 0, 100, 100, })
+ui._vec_position = ffi.new('D3DXVECTOR2', { 0, 0, })
+ui._vec_scale = ffi.new('D3DXVECTOR2', { 1.0, 1.0, })
+
+
 local function setup_image(image, path)
     image:path(path)
     image:repeat_xy(1, 1)
@@ -49,6 +60,14 @@ local function setup_text(text, text_options)
     text:stroke_transparency(text_options.stroke.alpha or 0)
     text:stroke_color(text_options.stroke.red or 0, text_options.stroke.green or 0, text_options.stroke.blue or 0)
     text:stroke_width(text_options.stroke.width or 0)
+end
+
+local function setup_sprite()
+    local sprite_ptr = ffi.new('ID3DXSprite*[1]');
+    if (C.D3DXCreateSprite(d3d8dev, sprite_ptr) ~= C.S_OK) then
+        error('failed to make sprite obj');
+    end
+    ui._sprite = d3d.gc_safe_release(ffi.cast('ID3DXSprite*', sprite_ptr[0]));
 end
 
 function ui:load(settings, theme_options)
@@ -95,6 +114,8 @@ function ui:load(settings, theme_options)
 
     self._type = self._dialogue_settings
 
+    setup_sprite()
+
     setup_image(self.message_background, self._type.path)
     if theme_options.portrait then
         setup_image(self.portrait_background, theme_options.portrait_background)
@@ -115,6 +136,48 @@ function ui:load(settings, theme_options)
     self:position(settings.Position.X, settings.Position.Y)
 
     self.message_background:draggable(true)
+end
+
+function ui:destroy()
+    ui._sprite = nil
+
+    if ui.message_background ~= nil then 
+        ui.message_background:destroy()
+        ui.message_background = nil
+    end
+    if ui.portrait_background ~= nil then 
+        ui.portrait_background:destroy()
+        ui.portrait_background = nil
+    end
+    if ui.portrait ~= nil then 
+        ui.portrait:destroy()
+        ui.portrait = nil
+    end
+    if ui.portrait_frame ~= nil then 
+        ui.portrait_frame:destroy()
+        ui.portrait_frame = nil
+    end
+    if ui.name_background ~= nil then 
+        ui.name_background:destroy()
+        ui.name_background = nil
+    end
+    if ui.prompt ~= nil then 
+        ui.prompt:destroy()
+        ui.prompt = nil
+    end
+
+    if ui.message_text ~= nil then 
+        ui.message_text:destroy()
+        ui.message_text = nil
+    end
+    if ui.name_text ~= nil then 
+        ui.name_text:destroy()
+        ui.name_text = nil
+    end
+    if ui.timer_text ~= nil then 
+        ui.timer_text:destroy()
+        ui.timer_text = nil
+    end
 end
 
 function ui:scale(scale)
@@ -374,6 +437,52 @@ end
 
 function ui:hidden()
     return self._hidden
+end
+
+local debug_render = true
+
+local function render_image(sprite, image)
+    if not image:visible() then
+        return
+    end
+
+    ui._rect.right = image:width()
+    ui._rect.bottom = image:height()
+    ui._vec_position.x = image:pos_x()
+    ui._vec_position.y = image:pos_y()
+    ui._vec_scale.x = 1.0 --v.scale_x
+    ui._vec_scale.y = 1.0 --v.scale_y
+
+    local red, green, blue = image:color()
+    -- local color = tonumber(string.format('%02x%02x%02x%02x', 255, red,  green, blue), 16)
+    local color = d3d.D3DCOLOR_ARGB(image:alpha(), red, green, blue)
+
+    if debug_render then
+        print(('ui render image: %s, x%d y%d (%d, %d), a%d'):format(image:path(), image:pos_x(), image:pos_y(), image:width(), image:height(), image:alpha()))
+    end
+
+    sprite:Draw(image:texture(), ui._rect, ui._vec_scale, nil, 0.0, ui._vec_position, color)
+end
+
+function ui:render()
+    if (ui._sprite == nil) then return end
+
+    local sprite = ui._sprite
+
+    sprite:Begin()
+
+    render_image(sprite, ui.message_background)
+    render_image(sprite, ui.portrait_background)
+    render_image(sprite, ui.portrait)
+    render_image(sprite, ui.portrait_frame)
+    render_image(sprite, ui.name_background)
+    render_image(sprite, ui.prompt)
+
+    sprite:End()
+
+    -- TODO: render text
+
+    debug_render = false
 end
 
 return ui

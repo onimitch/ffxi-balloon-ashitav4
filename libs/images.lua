@@ -5,6 +5,11 @@
 local table = require('table')
 local math = require('math')
 
+local d3d = require('d3d8')
+local ffi = require('ffi')
+local C = ffi.C
+local d3d8dev = d3d.get_device()
+
 local images = {}
 local meta = {}
 
@@ -108,6 +113,26 @@ local apply_settings = function(_, t, settings)
     images.draggable(t, settings.draggable)
 
     call_events(t, 'reload')
+end
+
+local function load_texture(texture_path)
+    if texture_path == nil or texture_path == '' then
+        return nil
+    end
+
+    local path = texture_path
+    if (not ashita.fs.exists(path)) then
+        print('Load texture not found: ' .. path)
+        return nil;
+    end
+
+    local texture_ptr = ffi.new('IDirect3DTexture8*[1]');
+    if (C.D3DXCreateTextureFromFileA(d3d8dev, path, texture_ptr) ~= C.S_OK) then
+        print('Load texture failed: ' .. path)
+        return nil;
+    end
+
+    return d3d.gc_safe_release(ffi.cast('IDirect3DTexture8*', texture_ptr[0]));
 end
 
 function images.new(str, settings, root_settings)
@@ -277,7 +302,12 @@ function images.path(t, path)
     end
 
     -- windower.prim.set_texture(meta[t].name, path)
+    meta[t].texture = load_texture(path)
     meta[t].settings.texture.path = path
+end
+
+function images.texture(t)
+    return meta[t].texture
 end
 
 function images.fit(t, fit)

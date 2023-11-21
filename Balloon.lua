@@ -76,7 +76,7 @@ local AUTO_PROMPT_CHARS = string.char(0x7F,0x34,0x01)
 
 local balloon = {}
 balloon.initialized = false
-balloon.debug = 'chars'
+balloon.debug = 'off'
 balloon.moving = false
 balloon.old_x = "0"
 balloon.old_y = "0"
@@ -97,18 +97,6 @@ balloon.processing_message = false
 
 local function initialize()
 	settings = defaults --settingsLib.load(defaults)
-
-    -- local text = ('Some text %s'):format('hello world')
-
-    local text_setup = {
-        flags = {
-            draggable = false
-        },
-        padding = 2
-    }
-
-    local prompt = images.new()
-    local message_text = texts.new(text_setup)
 
 	apply_theme()
 
@@ -150,6 +138,8 @@ local function open(timed)
 		balloon.close_timer = settings.NoPromptCloseDelay
 		ui.timer_text:text(''..balloon.close_timer)
 	end
+
+    print("balloon.open")
 
 	ui:show(timed)
 
@@ -201,6 +191,10 @@ end
 ashita.events.register('load', 'load_cb', function()
     print(chat.header(addon.name):append(chat.message('load_cb')))
     initialize()
+end)
+
+ashita.events.register('unload', 'unload_cb', function ()
+    ui:destroy()
 end)
 
 settingsLib.register('settings', 'settings_update', function (s)
@@ -606,19 +600,23 @@ end
 -- 	config.save(settings)
 -- end)
 
--- ashita.events.register('d3d_present', 'd3d_present_callback1', function ()
--- -- windower.register_event("prerender",function()
--- 	-- animate our text advance indicator bouncing up and down
--- 	balloon.frame_count = balloon.frame_count + 1
--- 	if balloon.frame_count > 60*math.pi*2 then balloon.frame_count = balloon.frame_count - 60*math.pi*2 end
+ashita.events.register('d3d_present', 'd3d_present_callback1', function ()
+-- windower.register_event("prerender",function()
+	-- animate our text advance indicator bouncing up and down
+	balloon.frame_count = balloon.frame_count + 1
+	if balloon.frame_count > 60*math.pi*2 then balloon.frame_count = balloon.frame_count - 60*math.pi*2 end
 
--- 	if balloon.on then
--- 		if settings.AnimatePrompt then
--- 			ui:animate_prompt(balloon.frame_count)
--- 		end
--- 		ui:animate_text_display(settings.TextSpeed)
--- 	end
--- end)
+	if balloon.on then
+		if settings.AnimatePrompt then
+			ui:animate_prompt(balloon.frame_count)
+		end
+		ui:animate_text_display(settings.TextSpeed)
+	end
+
+    if not ui:hidden() then
+        ui:render()
+    end
+end)
 
 -- windower.register_event('keyboard',function(key_id,pressed,flags,blocked)
 -- 	if windower.ffxi.get_info().chat_open or blocked then return end
