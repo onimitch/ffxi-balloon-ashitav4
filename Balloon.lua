@@ -96,7 +96,9 @@ balloon.processing_message = false
 -------------------------------------------------------------------------------
 
 local function initialize()
-	settings = defaults --settingsLib.load(defaults)
+    -- local user_settings = settingsLib.load(defaults)
+    -- TODO: settingsLib.load(defaults) is generating errors in process_settings
+	settings = defaults -- user_settings.settings -- defaults
 
 	apply_theme()
 

@@ -5,6 +5,9 @@
 local table = require('table')
 local math = require('math')
 
+local gdi = require('gdifonts.include')
+local d3d = require('d3d8')
+
 local texts = {}
 local meta = {}
 
@@ -34,6 +37,8 @@ _meta = _meta or {}
 _meta.Text = _meta.Text or {}
 _meta.Text.__class = 'Text'
 _meta.Text.__index = texts
+
+local text_objects = {}
 
 local set_value = function(t, key, value)
     local m = meta[t]
@@ -131,6 +136,42 @@ local apply_settings = function(_, t, settings)
     call_events(t, 'reload')
 end
 
+local function get_font_settings(settings)
+    local font_align = gdi.Alignment.Left
+    if settings.flags.right then
+        font_align = gdi.Alignment.Right
+    end
+
+    local flags = gdi.FontFlags.None
+    if settings.flags.italic then
+        flags = bit.bor(flags, gdi.FontFlags.Italic)
+    end
+    if settings.flags.bold then
+        flags = bit.bor(flags, gdi.FontFlags.Bold)
+    end
+
+    local font_settings = {
+        box_height = 0,
+        box_width = 0,
+        font_alignment = font_align,
+        font_color = d3d.D3DCOLOR_ARGB(settings.text.alpha, settings.text.red, settings.text.green, settings.text.blue),
+        font_family = settings.text.font,
+        font_flags = flags,
+        font_height = settings.text.size,
+        gradient_color = 0x00000000,
+        gradient_style = 0,
+
+        outline_color = d3d.D3DCOLOR_ARGB(settings.text.stroke.alpha, settings.text.stroke.red, settings.text.stroke.green, settings.text.stroke.blue),
+        outline_width = settings.text.stroke.width,
+    
+        position_x = 0,
+        position_y = 0,
+        visible = true,
+        text = '',
+    }
+    return font_settings
+end
+
 -- Returns a new text object.
 -- settings: If provided, it will overwrite the defaults with those. The structure needs to be similar
 -- str:      Formatting string, if provided, will set it as default text. Supports named variables:
@@ -206,6 +247,8 @@ function texts.new(str, settings, root_settings)
         config.save(m.root_settings)
     end
 
+    m.font_object = gdi:create_object(get_font_settings(m.settings), true)
+
     if _libs.config and m.root_settings and settings then
         _libs.config.register(m.root_settings, apply_settings, t, settings)
     else
@@ -219,9 +262,13 @@ function texts.new(str, settings, root_settings)
     end
 
     -- Cache for deletion
-    table.insert(windower.text.saved_texts, 1, t)
+    table.insert(text_objects, 1, t)
 
     return setmetatable(t, _meta.Text)
+end
+
+function texts.font_object(t)
+    return meta[t].font_object
 end
 
 -- Sets string values based on the provided attributes.
@@ -246,6 +293,7 @@ function texts.update(t, attr)
     end
 
     -- windower.text.set_text(m.name, str)
+    m.font_object:set_text(str)
     m.status.text.content = str
 
     return str
@@ -342,12 +390,14 @@ end
 function texts.show(t)
     -- windower.text.set_visibility(meta[t].name, true)
     meta[t].status.visible = true
+    meta[t].font_object:set_visible(true)
 end
 
 -- Makes the primitive invisible
 function texts.hide(t)
     -- windower.text.set_visibility(meta[t].name, false)
     meta[t].status.visible = false
+    meta[t].font_object:set_visible(false)
 end
 
 -- Returns whether or not the text object is visible
@@ -358,6 +408,7 @@ function texts.visible(t, visible)
 
     -- windower.text.set_visibility(meta[t].name, visible)
     meta[t].status.visible = visible
+    meta[t].font_object:set_visible(visible)
 end
 
 -- Sets a new text
@@ -384,6 +435,9 @@ function texts.pos(t, x, y)
     -- windower.text.set_location(m.name, x + (m.settings.flags.right and settings.ui_x_res or 0), y + (m.settings.flags.bottom and settings.ui_y_res or 0))
     m.settings.pos.x = x
     m.settings.pos.y = y
+
+    m.font_object:set_position_x(x)
+    m.font_object:set_position_y(y)
 end
 
 function texts.pos_x(t, x)
@@ -402,9 +456,9 @@ function texts.pos_y(t, y)
     t:pos(meta[t].settings.pos.x, y)
 end
 
-function texts.extents(t)
-    -- return windower.text.get_extents(meta[t].name)
-end
+-- function texts.extents(t)
+--     -- return windower.text.get_extents(meta[t].name)
+-- end
 
 function texts.font(t, ...)
     if not ... then
@@ -414,6 +468,7 @@ function texts.font(t, ...)
     -- windower.text.set_font(meta[t].name, ...)
     meta[t].settings.text.font = (...)
     meta[t].settings.text.fonts = {select(2, ...)}
+    meta[t].font_object:set_font_family(meta[t].settings.text.font)
 end
 
 function texts.size(t, size)
@@ -422,6 +477,7 @@ function texts.size(t, size)
     end
 
     -- windower.text.set_font_size(meta[t].name, size)
+    meta[t].font_object:set_font_height(size)
     meta[t].settings.text.size = size
 end
 
@@ -443,6 +499,7 @@ function texts.color(t, red, green, blue)
     meta[t].settings.text.red = red
     meta[t].settings.text.green = green
     meta[t].settings.text.blue = blue
+    meta[t].font_object:set_font_color(d3d.D3DCOLOR_ARGB(meta[t].settings.text.alpha, meta[t].settings.text.red, meta[t].settings.text.green, meta[t].settings.text.blue))
 end
 
 function texts.alpha(t, alpha)
@@ -452,6 +509,7 @@ function texts.alpha(t, alpha)
 
     -- windower.text.set_color(meta[t].name, alpha, meta[t].settings.text.red, meta[t].settings.text.green, meta[t].settings.text.blue)
     meta[t].settings.text.alpha = alpha
+    meta[t].font_object:set_font_color(d3d.D3DCOLOR_ARGB(meta[t].settings.text.alpha, meta[t].settings.text.red, meta[t].settings.text.green, meta[t].settings.text.blue))
 end
 
 -- Sets/returns text transparency. Based on percentage values, with 1 being fully transparent, while 0 is fully opaque.
@@ -470,6 +528,11 @@ function texts.right_justified(t, right)
 
     -- windower.text.set_right_justified(meta[t].name, right)
     meta[t].settings.flags.right = right
+    local font_align = gdi.Alignment.Left
+    if right then
+        font_align = gdi.Alignment.Right
+    end
+    meta[t].font_object:set_font_alignment(font_align)
 end
 
 function texts.bottom_justified(t, bottom)
@@ -482,6 +545,18 @@ function texts.bottom_justified(t, bottom)
     -- meta[t].settings.flags.bottom = bottom
 end
 
+local function update_font_flags(t)
+    local settings = meta[t].settings
+    local flags = gdi.FontFlags.None
+    if settings.flags.italic then
+        flags = bit.bor(flags, gdi.FontFlags.Italic)
+    end
+    if settings.flags.bold then
+        flags = bit.bor(flags, gdi.FontFlags.Bold)
+    end
+    meta[t].font_object:set_font_flags(flags)
+end
+
 function texts.italic(t, italic)
     if italic == nil then
         return meta[t].settings.flags.italic
@@ -489,6 +564,7 @@ function texts.italic(t, italic)
 
     -- windower.text.set_italic(meta[t].name, italic)
     meta[t].settings.flags.italic = italic
+    update_font_flags(t)
 end
 
 function texts.bold(t, bold)
@@ -498,6 +574,7 @@ function texts.bold(t, bold)
 
     -- windower.text.set_bold(meta[t].name, bold)
     meta[t].settings.flags.bold = bold
+    update_font_flags(t)
 end
 
 function texts.bg_color(t, red, green, blue)
@@ -545,6 +622,7 @@ function texts.stroke_width(t, width)
 
     -- windower.text.set_stroke_width(meta[t].name, width)
     meta[t].settings.text.stroke.width = width
+    meta[t].font_object:set_outline_width(width)
 end
 
 function texts.stroke_color(t, red, green, blue)
@@ -556,6 +634,7 @@ function texts.stroke_color(t, red, green, blue)
     meta[t].settings.text.stroke.red = red
     meta[t].settings.text.stroke.green = green
     meta[t].settings.text.stroke.blue = blue
+    meta[t].font_object:set_outline_color(d3d.D3DCOLOR_ARGB(meta[t].settings.text.stroke.alpha, meta[t].settings.text.stroke.red, meta[t].settings.text.stroke.green, meta[t].settings.text.stroke.blue))
 end
 
 function texts.stroke_transparency(t, transparency)
@@ -573,6 +652,7 @@ function texts.stroke_alpha(t, alpha)
 
     -- windower.text.set_stroke_color(meta[t].name, alpha, meta[t].settings.text.stroke.red, meta[t].settings.text.stroke.green, meta[t].settings.text.stroke.blue)
     meta[t].settings.text.stroke.alpha = alpha
+    meta[t].font_object:set_outline_color(d3d.D3DCOLOR_ARGB(meta[t].settings.text.stroke.alpha, meta[t].settings.text.stroke.red, meta[t].settings.text.stroke.green, meta[t].settings.text.stroke.blue))
 end
 
 function texts.draggable(t, draggable)
@@ -601,12 +681,13 @@ function texts.hover(t, x, y)
 end
 
 function texts.destroy(t)
-    for i, t_needle in ipairs(windower.text.saved_texts) do
+    for i, t_needle in ipairs(text_objects) do
         if t == t_needle then
-            table.remove(windower.text.saved_texts, i)
+            table.remove(text_objects, i)
             break
         end
     end
+    gdi:destroy_object(meta[t].font_object)
     -- windower.text.delete(meta[t].name)
     meta[t] = nil
 end
@@ -630,7 +711,7 @@ end
 
 --     -- Mouse left click
 --     elseif type == 1 then
---         for _, t in pairs(windower.text.saved_texts) do
+--         for _, t in pairs(text_objects) do
 --             local m = meta[t]
 --             if m.settings.flags.draggable and t:hover(x, y) then
 --                 local pos_x, pos_y = windower.text.get_location(m.name)

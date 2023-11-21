@@ -3,6 +3,8 @@ local ffi = require('ffi')
 local C = ffi.C
 local d3d8dev = d3d.get_device()
 
+local gdi = require('gdifonts.include')
+
 local ui = {}
 
 local text_setup = {
@@ -140,6 +142,8 @@ end
 
 function ui:destroy()
     ui._sprite = nil
+
+    gdi:destroy_interface()
 
     if ui.message_background ~= nil then 
         ui.message_background:destroy()
@@ -441,7 +445,7 @@ end
 
 local debug_render = true
 
-local function render_image(sprite, image)
+local function render_image(sprite, image, scale)
     if not image:visible() then
         return
     end
@@ -450,18 +454,46 @@ local function render_image(sprite, image)
     ui._rect.bottom = image:height()
     ui._vec_position.x = image:pos_x()
     ui._vec_position.y = image:pos_y()
-    ui._vec_scale.x = 1.0 --v.scale_x
-    ui._vec_scale.y = 1.0 --v.scale_y
+    ui._vec_scale.x = scale
+    ui._vec_scale.y = scale
 
     local red, green, blue = image:color()
-    -- local color = tonumber(string.format('%02x%02x%02x%02x', 255, red,  green, blue), 16)
     local color = d3d.D3DCOLOR_ARGB(image:alpha(), red, green, blue)
 
-    if debug_render then
-        print(('ui render image: %s, x%d y%d (%d, %d), a%d'):format(image:path(), image:pos_x(), image:pos_y(), image:width(), image:height(), image:alpha()))
-    end
+    -- if debug_render then
+    --     print('UI Scale: ' .. scale)
+    --     print(('ui render image: %s, x%d y%d (%d, %d), a%d'):format(image:path(), image:pos_x(), image:pos_y(), image:width(), image:height(), image:alpha()))
+    -- end
 
     sprite:Draw(image:texture(), ui._rect, ui._vec_scale, nil, 0.0, ui._vec_position, color)
+end
+
+local d3dwhite = d3d.D3DCOLOR_ARGB(255, 255, 255, 255);
+
+local function render_text(sprite, text, scale)
+    local obj = text:font_object()
+
+    if (obj.settings.visible) then
+        local texture, rect = obj:get_texture();
+        if (texture ~= nil) then
+            local vec_position = ui._vec_position
+            local vec_scale = ui._vec_scale
+            vec_scale.x = scale * 1
+            vec_scale.y = scale * 1
+
+            -- rect.bottom = rect.bottom + 50
+
+            if (obj.settings.font_alignment == gdi.Alignment.Center) then
+                vec_position.x = obj.settings.position_x - (rect.right / 2);
+            elseif (obj.settings.font_alignment == gdi.Alignment.Right) then
+                vec_position.x = obj.settings.position_x - rect.right;
+            else
+                vec_position.x = obj.settings.position_x;
+            end
+            vec_position.y = obj.settings.position_y;
+            sprite:Draw(texture, rect, vec_scale, nil, 0.0, vec_position, d3dwhite);
+        end
+    end
 end
 
 function ui:render()
@@ -471,16 +503,18 @@ function ui:render()
 
     sprite:Begin()
 
-    render_image(sprite, ui.message_background)
-    render_image(sprite, ui.portrait_background)
-    render_image(sprite, ui.portrait)
-    render_image(sprite, ui.portrait_frame)
-    render_image(sprite, ui.name_background)
-    render_image(sprite, ui.prompt)
+    render_image(sprite, ui.message_background, self._scale)
+    render_image(sprite, ui.portrait_background, self._scale)
+    render_image(sprite, ui.portrait, self._scale)
+    render_image(sprite, ui.portrait_frame, self._scale)
+    render_image(sprite, ui.name_background, self._scale)
+    render_image(sprite, ui.prompt, self._scale)
+
+    render_text(sprite, ui.message_text, self._scale)
+    render_text(sprite, ui.name_text, self._scale)
+    render_text(sprite, ui.timer_text, self._scale)
 
     sprite:End()
-
-    -- TODO: render text
 
     debug_render = false
 end
