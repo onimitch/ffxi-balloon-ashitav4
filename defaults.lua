@@ -8,7 +8,7 @@ defaults.NoPromptCloseDelay = 10
 defaults.AnimatePrompt = true
 defaults.TextSpeed = 10
 defaults.Theme = 'default'
-defaults.Scale = 1.25
+defaults.Scale = 1
 defaults.ShowPortraits = true
 
 local scaling = require('scaling')

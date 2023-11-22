@@ -4,6 +4,7 @@ local C = ffi.C
 local d3d8dev = d3d.get_device()
 
 local gdi = require('gdifonts.include')
+local encoding = require('gdifonts.encoding')
 
 local ui = {}
 
@@ -297,7 +298,7 @@ function ui:show(timed)
 end
 
 function ui:set_type(type)
-    print('ui:set_type: "' .. type .. '"')
+    -- print('ui:set_type: "' .. type .. '"')
     local types = {
         --[190] = self._system_settings, -- system text (always a duplicate of 151?)
         [150] = self._dialogue_settings, -- npc text
@@ -400,18 +401,22 @@ function ui:wrap_text(str)
 		end
 	end
 
-	table.insert(result, table.concat(line, ' '))
-	local new_str = table.concat(result, '\n ')
+	table.insert(result, table.concat(line, ' '):trim())
+    -- print('ui:wrap_text: lines=' .. #result)
+	local new_str = table.concat(result, '\n '):trim()
+
+    -- print('ui:wrap_text: new_str=' .. encoding:UTF8_To_ShiftJIS(new_str))
 
 	return new_str
 end
 
 function ui:set_message(message)
-    print('ui:set_message: "' .. message .. '"')
+    print('ui:set_message: "' .. encoding:UTF8_To_ShiftJIS(message) .. '"')
 
     self._current_text = message
     self._chars_shown = 0
     self.message_text:text('')
+    -- self.message_text:text(message)
 
     -- this is here to update the layout depending if there's a portrait or not
     self:position()
@@ -468,30 +473,28 @@ local function render_image(sprite, image, scale)
     sprite:Draw(image:texture(), ui._rect, ui._vec_scale, nil, 0.0, ui._vec_position, color)
 end
 
-local d3dwhite = d3d.D3DCOLOR_ARGB(255, 255, 255, 255);
+local d3dwhite = d3d.D3DCOLOR_ARGB(255, 255, 255, 255)
 
 local function render_text(sprite, text, scale)
     local obj = text:font_object()
 
     if (obj.settings.visible) then
-        local texture, rect = obj:get_texture();
+        local texture, rect = obj:get_texture()
         if (texture ~= nil) then
             local vec_position = ui._vec_position
             local vec_scale = ui._vec_scale
-            vec_scale.x = scale * 1
-            vec_scale.y = scale * 1
-
-            -- rect.bottom = rect.bottom + 50
+            vec_scale.x = scale
+            vec_scale.y = scale
 
             if (obj.settings.font_alignment == gdi.Alignment.Center) then
-                vec_position.x = obj.settings.position_x - (rect.right / 2);
+                vec_position.x = obj.settings.position_x - (rect.right / 2)
             elseif (obj.settings.font_alignment == gdi.Alignment.Right) then
-                vec_position.x = obj.settings.position_x - rect.right;
+                vec_position.x = obj.settings.position_x - rect.right
             else
-                vec_position.x = obj.settings.position_x;
+                vec_position.x = obj.settings.position_x
             end
-            vec_position.y = obj.settings.position_y;
-            sprite:Draw(texture, rect, vec_scale, nil, 0.0, vec_position, d3dwhite);
+            vec_position.y = obj.settings.position_y
+            sprite:Draw(texture, rect, vec_scale, nil, 0.0, vec_position, d3dwhite)
         end
     end
 end

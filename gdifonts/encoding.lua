@@ -6,52 +6,39 @@ ffi.cdef[[
 
 local exports = T{};
 
--- function exports:ShiftJIS_To_UTF8(input)
---     input = tostring(input or '')
---     local length = input:len()
---     local buffer = ffi.new('char['.. length .. ']');
---     ffi.copy(buffer, input);
---     local wBuffer = ffi.new('wchar_t['.. length .. ']');
---     ffi.C.MultiByteToWideChar(932, 0, buffer, -1, wBuffer, length);
---     ffi.C.WideCharToMultiByte(65001, 0, wBuffer, -1, buffer, length, 0);
---     return ffi.string(buffer);
--- end
-
 encoding_report = {}
 encoding_report.source_length = 0
-encoding_report.utf16size = 0
-encoding_report.utf8size = 0
+encoding_report.wchar_Length = 0
+encoding_report.char_length = 0
 
-function exports:ShiftJIS_To_UTF8(input)
-    input = tostring(input or '')
-    local length = string.len(input)
+local function Convert_String(input, codepage_from, codepage_to)
+    input = tostring(input or '');
+    local length = string.len(input);
     local buffer = ffi.new('char['.. length .. ']');
     ffi.copy(buffer, input);
 
-    local utf16size = ffi.C.MultiByteToWideChar(932, 0, buffer, -1, nil, 0);
-    local wBuffer = ffi.new('wchar_t['.. utf16size .. ']');
-    ffi.C.MultiByteToWideChar(932, 0, buffer, -1, wBuffer, utf16size);
+    local wchar_Length = ffi.C.MultiByteToWideChar(932, 0, buffer, -1, nil, 0);
+    local wBuffer = ffi.new('wchar_t['.. wchar_Length .. ']');
+    ffi.C.MultiByteToWideChar(codepage_from, 0, buffer, -1, wBuffer, wchar_Length);
 
-    local utf8size = ffi.C.WideCharToMultiByte(65001, 0, wBuffer, -1, nil, 0, 0)
-    local uBuffer = ffi.new('char['.. length .. ']');
+    local char_length = ffi.C.WideCharToMultiByte(65001, 0, wBuffer, -1, nil, 0, 0)
+    local uBuffer = ffi.new('char['.. char_length .. ']');
 
-    ffi.C.WideCharToMultiByte(65001, 0, wBuffer, -1, uBuffer, utf8size, 0);
+    ffi.C.WideCharToMultiByte(codepage_to, 0, wBuffer, -1, uBuffer, char_length, 0);
 
-    encoding_report.source_length = length
-    encoding_report.utf16size = utf16size
-    encoding_report.utf8size = utf8size
+    encoding_report.source_length = length;
+    encoding_report.wchar_Length = wchar_Length;
+    encoding_report.char_length = char_length;
 
     return ffi.string(uBuffer);
 end
 
+function exports:ShiftJIS_To_UTF8(input)
+    return Convert_String(input, 932, 65001);
+end
+
 function exports:UTF8_To_ShiftJIS(input)
-    input = tostring(input or '')
-    local buffer = ffi.new('char[4096]');
-    ffi.copy(buffer, input);
-    local wBuffer = ffi.new("wchar_t[4096]");
-    ffi.C.MultiByteToWideChar(65001, 0, buffer, -1, wBuffer, 4096);
-    ffi.C.WideCharToMultiByte(932, 0, wBuffer, -1, buffer, 4096, 0);
-    return ffi.string(buffer);
+    return Convert_String(input, 65001, 932);
 end
 
 return exports;

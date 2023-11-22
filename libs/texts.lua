@@ -89,6 +89,9 @@ default_settings.text.stroke.blue = 0
 
 math.randomseed(os.clock())
 
+-- Since gdi uses font height not size, we apply a modifier to make it fit a bit closer to what we expect
+local gdi_font_size_modifier = 1.5
+
 local amend
 amend = function(settings, defaults)
     for key, val in pairs(defaults) do
@@ -157,7 +160,7 @@ local function get_font_settings(settings)
         font_color = d3d.D3DCOLOR_ARGB(settings.text.alpha, settings.text.red, settings.text.green, settings.text.blue),
         font_family = settings.text.font,
         font_flags = flags,
-        font_height = settings.text.size,
+        font_height = settings.text.size * gdi_font_size_modifier,
         gradient_color = 0x00000000,
         gradient_style = 0,
 
@@ -477,7 +480,7 @@ function texts.size(t, size)
     end
 
     -- windower.text.set_font_size(meta[t].name, size)
-    meta[t].font_object:set_font_height(size)
+    meta[t].font_object:set_font_height(size * gdi_font_size_modifier)
     meta[t].settings.text.size = size
 end
 

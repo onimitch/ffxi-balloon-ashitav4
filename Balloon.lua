@@ -118,12 +118,7 @@ function apply_theme()
     print(chat.header(addon.name):append(chat.message('theme_path: %s'):fmt(theme_path)))
 	local theme_settings = config.load(theme_path, {['name']=settings.Theme})
 
-    print(chat.header(addon.name):append(chat.message('theme_settings.message.width: %d'):fmt(theme_settings.message.width)))
-    print(chat.header(addon.name):append(chat.message('theme_settings.timer.size: %s'):fmt(type(theme_settings.timer.size))))
-
 	theme_options = theme.apply(theme_settings)
-    print(chat.header(addon.name):append(chat.message('theme_options.message.font_size: %d'):fmt(theme_options.message.font_size)))
-    print(chat.header(addon.name):append(chat.message('theme_options.message.font: %s'):fmt(theme_options.message.font)))
 
 	ui:load(settings, theme_options)
 	if balloon.on then
@@ -334,7 +329,7 @@ function process_balloon(npc_text, mode)
 
 	mes = encoding:ShiftJIS_To_UTF8(mes)
 
-    if S{'chars', 'all'}[balloon.debug] then print("message length: mes: " .. mes:len() .. ", source_length: " .. encoding_report.source_length .. ", utf16size: " .. encoding_report.utf16size .. ", utf8size: " .. encoding_report.utf8size) end
+    if S{'chars', 'all'}[balloon.debug] then print("message length: mes: " .. mes:len() .. ", source_length: " .. encoding_report.source_length .. ", wchar_Length: " .. encoding_report.wchar_Length .. ", char_length: " .. encoding_report.char_length) end
 
 	mes = SubCharactersPostShift(mes)
 
@@ -355,6 +350,8 @@ function process_balloon(npc_text, mode)
 
 	-- split by newlines
 	local mess = split(mes,string.char(0x07))
+
+    -- print('lines: ' .. #mess)
 
 	local message = ""
 	for k,v in ipairs(mess) do
@@ -385,7 +382,8 @@ function process_balloon(npc_text, mode)
 
 		v = ui:wrap_text(v)
 
-		v = " " .. v
+        -- This is causing empty spaces at start of lines??
+		-- v = " " .. v
 		v = string.gsub(v, "%[BL_c1]", "\\cr")
 		v = string.gsub(v, "%[BL_c2]", "\\cs("..ui._type.items..")")
 		v = string.gsub(v, "%[BL_c3]", "\\cs("..ui._type.keyitems..")")
@@ -407,7 +405,7 @@ function process_balloon(npc_text, mode)
 	end
 	if S{'process', 'all'}[balloon.debug] then print("Final: " .. message) end
 
-	ui:set_message(message)
+	ui:set_message(message:trim())
 	open(timed)
 
 	return result
