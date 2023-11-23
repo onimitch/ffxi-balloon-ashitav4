@@ -27,8 +27,6 @@ local ui = require('ui')
 
 -- TODO
 
--- Timer close
-
 -- Support command args
 
 -- Strip unused windower libs
@@ -63,13 +61,12 @@ balloon.moving = false
 balloon.old_x = "0"
 balloon.old_y = "0"
 balloon.on = false
-balloon.keydown = false
-balloon.mouse_on = false
-balloon.waiting_to_close = false
+-- balloon.keydown = false
+-- balloon.mouse_on = false
 balloon.frame_count = 0
 balloon.prev_path = nil
+balloon.waiting_to_close = false
 balloon.close_timer = 0
-balloon.timer_running = false
 balloon.last_text = ''
 balloon.last_mode = 0
 balloon.movement_thread = nil
@@ -79,7 +76,7 @@ balloon.settings = {}
 
 -------------------------------------------------------------------------------
 
-local function initialize()
+balloon.initialize = function()
     -- Get game language
     local lang = AshitaCore:GetConfigurationManager():GetInt32('boot', 'ashita.language', 'playonline', 2)
     balloon.lang_code = 'en'
@@ -87,11 +84,10 @@ local function initialize()
         balloon.lang_code = 'ja'
     end
 
-	apply_theme()
+	balloon.apply_theme()
 
     -- -- TODO TIMERS
 	-- --スレッド開始 (Thread start)
-	-- timer:schedule(0)
 	-- if settings.MovementCloses then
 	-- 	balloon.movement_thread = moving_check:schedule(0)
 	-- end
@@ -101,7 +97,7 @@ local function initialize()
     end
 end
 
-function apply_theme()
+balloon.apply_theme = function()
     -- Load the theme
     theme_options = theme.load(balloon.settings.Theme, balloon.lang_code)
     if theme_options == nil then
@@ -113,11 +109,26 @@ function apply_theme()
 
     -- Display balloon if we changed theme while open
 	if balloon.on then
-		process_balloon(balloon.last_text, balloon.last_mode)
+		balloon.process_balloon(balloon.last_text, balloon.last_mode)
 	end
 end
 
-local function open(timed)
+balloon.update_timer = function()
+    if balloon.close_timer >= 0 then
+        balloon.close_timer = math.max(0, balloon.close_timer - 1)
+        ui.timer_text:text(balloon.close_timer..'')
+    end
+
+    print('update_timer: ' .. balloon.close_timer)
+
+    if balloon.close_timer <= 0 then
+        balloon.close()
+    else
+        ashita.tasks.once(1, balloon.update_timer)
+    end
+end
+
+balloon.open = function(timed)
 	if timed then
 		balloon.close_timer = balloon.settings.NoPromptCloseDelay
 		ui.timer_text:text(''..balloon.close_timer)
@@ -127,131 +138,57 @@ local function open(timed)
 
 	ui:show(timed)
 
-	balloon.waiting_to_close = timed
+    if not balloon.waiting_to_close then
+        balloon.waiting_to_close = true
+        ashita.tasks.once(1, balloon.update_timer)
+    end
 	balloon.on = true
 end
 
-local function close()
-    print("balloon.close")
+balloon.close = function()
+    if balloon.on then
+        print("balloon.close")
+    end
 	ui:hide()
 
 	balloon.on = false
-	balloon.waiting_to_close = false
+    balloon.waiting_to_close = false
 end
 
-function timer()
-	-- from Aelmar's npcbox https://www.ffxiah.com/forum/topic/56227/balloon-story-addon/2/#3627878
-	-- thanks for letting me use bits from it, Aelmar!
-    if balloon.timer_running then return end
-    balloon.timer_running = true
-    while true do
-		if balloon.waiting_to_close then
-			if balloon.close_timer == 0 then
-				close()
-			end
-			if balloon.close_timer > 0 then
-				ui.timer_text:text(balloon.close_timer..'')
-			end
-			if balloon.close_timer >= 0 then
-				balloon.close_timer = balloon.close_timer - 1
-			end
-		end
-        coroutine.sleep(1)
-    end
-end
+-- function moving_check()
+--     local entity = AshitaCore:GetMemoryManager():GetEntity()
+--     local party = AshitaCore:GetMemoryManager():GetParty()
+--     local player = AshitaCore:GetMemoryManager():GetPlayer()
+--     local index = party:GetMemberTargetIndex(0)
+-- 	if player == nil then return end
 
---windower.register_event('load',function()
-	-- if windower.ffxi.get_info().logged_in then
-	-- 	initialize()
-	-- end
--- end)
+-- 	local x,y
 
--- windower.register_event('login',function()
--- 	-- re-load settings and theme 10 seconds after login,
--- 	-- so per-character settings are picked up properly
--- 	initialize:schedule(10)
--- end)
+-- 	while true do
+-- 		-- me = windower.ffxi.get_mob_by_id(p.id)
+-- 		-- if me ~= nil then
+--         x = string.format("%6d",entity:GetLocalPositionX(index))
+--         y = string.format("%6d",entity:GetLocalPositionY(index))
+--         --if x ~= old_x and y ~= old_y then
+--         if (tonumber(x) < tonumber(balloon.old_x) - 1 or tonumber(x) > tonumber(balloon.old_x) + 1) or (tonumber(y) < tonumber(balloon.old_y) - 1 or tonumber(y) > tonumber(balloon.old_y) + 1) then
+--             balloon.moving = true
+--             balloon.old_y = y
+--             balloon.old_x = x
+--         else
+--             balloon.moving = false
+--         end
+-- 		-- end
+-- 		--wait
+-- 		balloon.waiting_to_close = true
+-- 		coroutine.sleep(balloon.settings.NoPromptCloseDelay)
+-- 		if balloon.moving and balloon.settings.MovementCloses and balloon.waiting_to_close then
+-- 			close()
+-- 		end
+-- 	end
 
-ashita.events.register('load', 'balloon_load', function()
-    balloon.settings = settings.load(default_settings)
+-- end
 
-    initialize()
-end)
-
-ashita.events.register('unload', 'balloon_unload', function ()
-    ui:destroy()
-end)
-
-settings.register('settings', 'balloon_settings_update', function (s)
-	if (s ~= nil) then
-        balloon.settings = s
-    end
-
-    settings.save()
-    initialize()
-end)
-
-function moving_check()
-    local entity = AshitaCore:GetMemoryManager():GetEntity()
-    local party = AshitaCore:GetMemoryManager():GetParty()
-    local player = AshitaCore:GetMemoryManager():GetPlayer()
-    local index = party:GetMemberTargetIndex(0)
-	if player == nil then return end
-
-	local x,y
-
-	while true do
-		-- me = windower.ffxi.get_mob_by_id(p.id)
-		-- if me ~= nil then
-        x = string.format("%6d",entity:GetLocalPositionX(index))
-        y = string.format("%6d",entity:GetLocalPositionY(index))
-        --if x ~= old_x and y ~= old_y then
-        if (tonumber(x) < tonumber(balloon.old_x) - 1 or tonumber(x) > tonumber(balloon.old_x) + 1) or (tonumber(y) < tonumber(balloon.old_y) - 1 or tonumber(y) > tonumber(balloon.old_y) + 1) then
-            balloon.moving = true
-            balloon.old_y = y
-            balloon.old_x = x
-        else
-            balloon.moving = false
-        end
-		-- end
-		--wait
-		balloon.waiting_to_close = true
-		coroutine.sleep(balloon.settings.NoPromptCloseDelay)
-		if balloon.moving and balloon.settings.MovementCloses and balloon.waiting_to_close then
-			close()
-		end
-	end
-
-end
-
-ashita.events.register('packet_in', 'balloon_packet_in', function(e)
-    if theme_options == nil then
-        return
-    end
-
-	-- if S{'chunk', 'all'}[balloon.debug] then print("Chunk: " .. string.format('0x%02X', e.id) .. " original: " .. e.data_modified) end
-
-	--会話中かの確認 (Check if you have left a conversation)
-	if S{LEAVE_CONVERSATION_PACKET, ZONE_OUT_PACKET}[e.id] then
-		close()
-	end
-end)
-
-ashita.events.register('text_in', 'balloon_text_in', function (e)
-    if theme_options == nil then
-        return
-    end
-
-    if not balloon.processing_message then
-        balloon.processing_message = true
-        
-        process_incoming_message(e)
-
-        balloon.processing_message = false
-    end
-end)
-
-function process_incoming_message(e)
+balloon.process_incoming_message = function(e)
     -- Obtain the chat mode..
     local mode = bit.band(e.mode_modified,  0x000000FF);
 
@@ -267,7 +204,7 @@ function process_incoming_message(e)
 	-- blank prompt line that auto-continues itself,
 	-- usually used to clear a space for a scene change?
 	if e.message:endswith(AUTO_PROMPT_CHARS) then
-		close()
+		balloon.close()
 		return
 	end
 
@@ -275,11 +212,11 @@ function process_incoming_message(e)
 	-- if S{'codes', 'all'}[balloon.debug] then print("codes: " .. codes(e.message)) end
 
 	if balloon.settings.DisplayMode >= 1 then
-		e.message_modified = process_balloon(e.message, mode)
+		e.message_modified = balloon.process_balloon(e.message, mode)
     end
 end
 
-function process_balloon(npc_text, mode)
+balloon.process_balloon = function(npc_text, mode)
 	balloon.last_text = npc_text
 	balloon.last_mode = mode
 
@@ -400,7 +337,7 @@ function process_balloon(npc_text, mode)
 	if S{'process', 'all'}[balloon.debug] then print("Final: " .. message) end
 
 	ui:set_message(message:trimex())
-	open(timed)
+	balloon.open(timed)
 
 	return result
 end
@@ -593,6 +530,53 @@ end
 
 -- 	config.save(settings)
 -- end)
+
+ashita.events.register('load', 'balloon_load', function()
+    balloon.settings = settings.load(default_settings)
+
+    balloon.initialize()
+
+    -- Register for future settings updates
+    settings.register('settings', 'balloon_settings_update', function()
+        if (s ~= nil) then
+            balloon.settings = s
+        end
+    
+        settings.save()
+        balloon.initialize()
+    end)
+end)
+
+ashita.events.register('unload', 'balloon_unload', function ()
+    ui:destroy()
+end)
+
+ashita.events.register('packet_in', 'balloon_packet_in', function(e)
+    if theme_options == nil then
+        return
+    end
+
+	-- if S{'chunk', 'all'}[balloon.debug] then print("Chunk: " .. string.format('0x%02X', e.id) .. " original: " .. e.data_modified) end
+
+	--会話中かの確認 (Check if you have left a conversation)
+	if S{LEAVE_CONVERSATION_PACKET, ZONE_OUT_PACKET}[e.id] then
+		balloon.close()
+	end
+end)
+
+ashita.events.register('text_in', 'balloon_text_in', function (e)
+    if theme_options == nil then
+        return
+    end
+
+    if not balloon.processing_message then
+        balloon.processing_message = true
+        
+        balloon.process_incoming_message(e)
+
+        balloon.processing_message = false
+    end
+end)
 
 ashita.events.register('d3d_present', 'balloon_d3d_present', function ()
     if theme_options == nil then

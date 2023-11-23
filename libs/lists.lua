@@ -441,6 +441,17 @@ function list.format(l, trail, subs)
     return res
 end
 
+-- Return true if all elements of l satisfy the condition fn.
+function list.all(l, fn)
+    for value in list.it(l) do
+        if not fn(value) then
+            return false
+        end
+    end
+
+    return true
+end
+
 --[[
 Copyright © 2013-2015, Windower
 All rights reserved.
