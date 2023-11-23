@@ -166,7 +166,7 @@ function xml.parse(content)
         return xml_error('Invalid XML headers.')
     end
 
-    local tokens, err = tokenize(content:sub(index):trim(), line)
+    local tokens, err = tokenize(content:sub(index):trimex(), line)
     if tokens == nil then
         return nil, err
     end
@@ -219,7 +219,7 @@ function tokenize(content, line)
 
         elseif mode == 'inner' then
             if c == '<' then
-                tokens:last():append(current:trim())
+                tokens:last():append(current:trimex())
                 current = '<'
                 mode = 'tag'
             else
@@ -286,7 +286,7 @@ function tokenize(content, line)
     end
 
     for array, line in tokens:it() do
-        tokens[line] = array:filter(-'')
+        tokens[line] = array:filter(string.notequals(''))
     end
 
     return tokens
@@ -451,10 +451,10 @@ function table.undomify(node, types)
     if node_type then
         local val = children[1] or ''
         if node_type == 'set' then
-            res.children = val:split(','):map(string.trim):filter(-'')
+            res.children = val:split(','):map(string.trimex):filter(string.notequals(''))
             res.value = S(children)
         elseif node_type == 'list' then
-            res.value = val:split(','):map(string.trim):filter(-'')
+            res.value = val:split(','):map(string.trimex):filter(string.notequals(''))
             res.children = res.value
         elseif node_type == 'number' then
             res.value = tonumber(val)

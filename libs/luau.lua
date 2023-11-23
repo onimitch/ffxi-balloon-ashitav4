@@ -2,17 +2,19 @@
 LuaU - A utility tool for making Lua usable within FFXI. Loads several libraries and makes them available within the global namespace.
 ]]
 
-require('logger')
-require('strings')
-require('tables')
-require('lists')
-require('sets')
-require('maths')
-require('functions')
-config = require('config')
-res = require('resources')
+windower = windower or {}
 
-collectgarbage()
+-- require('logger')
+require('libs.strings')
+require('libs.tables')
+require('libs.lists')
+require('libs.sets')
+require('libs.maths')
+require('libs.functions')
+config = require('libs.config')
+-- res = require('resources')
+
+-- collectgarbage()
 
 --[[
 Copyright (c) 2013, Windower

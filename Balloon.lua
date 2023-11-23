@@ -1,50 +1,36 @@
-addon.name      = 'Balloon';
-addon.author    = 'Originally by Hando, English support added by Yuki & Kenshi, themes added by Ghosty, ported to Ashita v4 by onimitch.';
-addon.version   = '1.0';
-addon.desc      = 'Displays NPC chat logs in a UI Balloon, similar to FF14.';
-addon.link      = '';
+addon.name      = 'Balloon'
+addon.author    = 'Originally by Hando, English support added by Yuki & Kenshi, themes added by Ghosty, ported to Ashita v4 by onimitch.'
+addon.version   = '1.0'
+addon.desc      = 'Displays NPC chat logs in a UI Balloon, similar to FF14.'
+addon.link      = 'https://github.com/onimitch/ffxi-balloon-ashitav4'
 
+-- Ashita libs
 require('common')
 local chat = require('chat')
-settingsLib = require('settings')
+settings = require('settings')
 local encoding = require('gdifonts.encoding')
 
--- TODO: Drop this once no libs depend on it existing
-windower = windower or {}
-
+-- Windower ported luau libs
+require('libs.luau')
 chars = require('libs.chat.chars')
 chars.cldquo = string.char(0x87, 0xB2)
 chars.crdquo = string.char(0x87, 0xB3)
 texts = require('libs.texts')
 images = require('libs.images')
 
-local defaults = require('defaults')
-local settings = {}
-
+-- Balloon files
+local default_settings = require('defaults')
 local theme = require('theme')
 local theme_options = {}
-
 local ui = require('ui')
 
 
 -- TODO
 
--- Rename TextOffsetX to TextMarginLeft
--- Add TextMarginRight
--- If TextMarginRight non 0, set gdi font bounding box
--- Disable manual wrapping and let GDI wrap if needed
-
--- Can GDI wrap automatically?
--- Adjust line length or wrap based on pixel width if possible
-
--- Check if font available (ffvii-r & snes-ff)
--- Pick font based on language
--- Support list of fonts in xml with comma sep
-
 -- Timer close
--- SettingsLib.Load user settings
 
 -- Support command args
+
 -- Strip unused windower libs
 -- Strip any other unused code
 
@@ -89,14 +75,11 @@ balloon.last_mode = 0
 balloon.movement_thread = nil
 balloon.processing_message = false
 balloon.lang_code = 'en'
+balloon.settings = {}
 
 -------------------------------------------------------------------------------
 
 local function initialize()
-    -- local user_settings = settingsLib.load(defaults)
-    -- TODO: settingsLib.load(defaults) is generating errors in process_settings
-	settings = defaults -- user_settings.settings -- defaults
-
     -- Get game language
     local lang = AshitaCore:GetConfigurationManager():GetInt32('boot', 'ashita.language', 'playonline', 2)
     balloon.lang_code = 'en'
@@ -114,19 +97,19 @@ local function initialize()
 	-- end
 
 	if theme_options ~= nil then
-        print(chat.header(addon.name):append(chat.message('Loaded Theme "%s" Language "%s" '):format(settings.Theme, balloon.lang_code)))
+        print(chat.header(addon.name):append(chat.message('Loaded Theme "%s", %s'):format(balloon.settings.Theme, balloon.lang_code)))
     end
 end
 
 function apply_theme()
     -- Load the theme
-    theme_options = theme.load(settings.Theme, balloon.lang_code)
+    theme_options = theme.load(balloon.settings.Theme, balloon.lang_code)
     if theme_options == nil then
         return
     end
 
     -- Load UI
-	ui:load(settings, theme_options)
+	ui:load(balloon.settings, theme_options)
 
     -- Display balloon if we changed theme while open
 	if balloon.on then
@@ -136,7 +119,7 @@ end
 
 local function open(timed)
 	if timed then
-		balloon.close_timer = settings.NoPromptCloseDelay
+		balloon.close_timer = balloon.settings.NoPromptCloseDelay
 		ui.timer_text:text(''..balloon.close_timer)
 	end
 
@@ -189,16 +172,23 @@ end
 -- 	initialize:schedule(10)
 -- end)
 
-ashita.events.register('load', 'load_cb', function()
+ashita.events.register('load', 'balloon_load', function()
+    balloon.settings = settings.load(default_settings)
+
     initialize()
 end)
 
-ashita.events.register('unload', 'unload_cb', function ()
+ashita.events.register('unload', 'balloon_unload', function ()
     ui:destroy()
 end)
 
-settingsLib.register('settings', 'settings_update', function (s)
-	initialize()
+settings.register('settings', 'balloon_settings_update', function (s)
+	if (s ~= nil) then
+        balloon.settings = s
+    end
+
+    settings.save()
+    initialize()
 end)
 
 function moving_check()
@@ -226,15 +216,15 @@ function moving_check()
 		-- end
 		--wait
 		balloon.waiting_to_close = true
-		coroutine.sleep(settings.NoPromptCloseDelay)
-		if balloon.moving and settings.MovementCloses and balloon.waiting_to_close then
+		coroutine.sleep(balloon.settings.NoPromptCloseDelay)
+		if balloon.moving and balloon.settings.MovementCloses and balloon.waiting_to_close then
 			close()
 		end
 	end
 
 end
 
-ashita.events.register('packet_in', 'packet_in_cb', function(e)
+ashita.events.register('packet_in', 'balloon_packet_in', function(e)
     if theme_options == nil then
         return
     end
@@ -247,7 +237,7 @@ ashita.events.register('packet_in', 'packet_in_cb', function(e)
 	end
 end)
 
-ashita.events.register('text_in', 'text_in_cb', function (e)
+ashita.events.register('text_in', 'balloon_text_in', function (e)
     if theme_options == nil then
         return
     end
@@ -284,7 +274,7 @@ function process_incoming_message(e)
 	-- print debug info
 	-- if S{'codes', 'all'}[balloon.debug] then print("codes: " .. codes(e.message)) end
 
-	if settings.DisplayMode >= 1 then
+	if balloon.settings.DisplayMode >= 1 then
 		e.message_modified = process_balloon(e.message, mode)
     end
 end
@@ -306,21 +296,21 @@ function process_balloon(npc_text, mode)
 		if _end < 32 and start > 0 then npc_prefix = npc_text:sub(start,_end) end
 	end
 	local npc_name = npc_prefix:sub(0,#npc_prefix-2)
-	npc_name = string.trim(npc_name)
+	npc_name = string.trimex(npc_name)
 
 	if not ui:set_character(npc_name) then
 		ui:set_type(mode)
 	end
 
 	-- mode 1, blank log lines and visible balloon
-	if settings.DisplayMode == 1 then
+	if balloon.settings.DisplayMode == 1 then
 		if npc_prefix == "" then
 			result = "" .. "\n"
 		else
 			result = npc_text:sub(#npc_text-1,#npc_text)
 		end
 	-- mode 2, visible log and balloon
-	elseif settings.DisplayMode == 2 then
+	elseif balloon.settings.DisplayMode == 2 then
 		-- pass through the original message for the log
 		result = npc_text
 	end
@@ -353,12 +343,10 @@ function process_balloon(npc_text, mode)
 	end
 
 	-- split by newlines
-	local mess = split(mes,string.char(0x07))
-
-    -- print('lines: ' .. #mess)
+	local message_lines = split(mes, string.char(0x07))
 
 	local message = ""
-	for k,v in ipairs(mess) do
+	for k,v in ipairs(message_lines) do
 		v = string.gsub(v, string.char(0x1E,0x01), "[BL_c1]") --color code 1 (black/reset)
 		v = string.gsub(v, string.char(0x1E,0x02), "[BL_c2]") --color code 2 (green/regular items)
 		v = string.gsub(v, string.char(0x1E,0x03), "[BL_c3]") --color code 3 (blue/key items)
@@ -384,10 +372,12 @@ function process_balloon(npc_text, mode)
 		v = string.gsub(v, '(%w)(%.%.%.+)([%w“])', "%1%2 %3") --add a space after elipses to allow better line splitting
 		v = string.gsub(v, '([%w”])%-%-([%w%p])', "%1-- %2") --same for double dashes
 
-		v = ui:wrap_text(v)
+        -- Disabled manually wrapping in favour of automatic wrapping of text via GDI font rendering
+		-- v = ui:wrap_text(v)
 
-        -- This is causing empty spaces at start of lines??
+        -- Disabled: This is causing empty spaces at start of lines??
 		-- v = " " .. v
+
 		v = string.gsub(v, "%[BL_c1]", "\\cr")
 		v = string.gsub(v, "%[BL_c2]", "\\cs("..ui._type.items..")")
 		v = string.gsub(v, "%[BL_c3]", "\\cs("..ui._type.keyitems..")")
@@ -409,7 +399,7 @@ function process_balloon(npc_text, mode)
 	end
 	if S{'process', 'all'}[balloon.debug] then print("Final: " .. message) end
 
-	ui:set_message(message:trim())
+	ui:set_message(message:trimex())
 	open(timed)
 
 	return result
@@ -604,7 +594,7 @@ end
 -- 	config.save(settings)
 -- end)
 
-ashita.events.register('d3d_present', 'd3d_present_callback', function ()
+ashita.events.register('d3d_present', 'balloon_d3d_present', function ()
     if theme_options == nil then
         return
     end
@@ -614,10 +604,10 @@ ashita.events.register('d3d_present', 'd3d_present_callback', function ()
 	if balloon.frame_count > 60*math.pi*2 then balloon.frame_count = balloon.frame_count - 60*math.pi*2 end
 
 	if balloon.on then
-		if settings.AnimatePrompt then
+		if balloon.settings.AnimatePrompt then
 			ui:animate_prompt(balloon.frame_count)
 		end
-		ui:animate_text_display(settings.TextSpeed)
+		ui:animate_text_display(balloon.settings.TextSpeed)
 	end
 
     if not ui:hidden() then

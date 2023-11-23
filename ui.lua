@@ -186,12 +186,15 @@ end
 function ui:position(x_pos, y_pos)
     local center_offset_x = self._theme_options.message.width / 2
     local center_offset_y = self._theme_options.message.height / 2
+
     x_pos = x_pos or self.message_background:pos_x() + center_offset_x * self._scale
     y_pos = y_pos or self.message_background:pos_y() + center_offset_y * self._scale
     local x = x_pos - center_offset_x * self._scale
     local y = y_pos - center_offset_y * self._scale
+
     local name_bg_offset_x = self._theme_options.name.background_offset_x * self._scale
     local name_bg_offset_y = self._theme_options.name.background_offset_y * self._scale
+
     local message_text_offset_x = self._theme_options.message.offset_x * self._scale
     local message_text_offset_y = self._theme_options.message.offset_y * self._scale
     if self._has_portrait and self._theme_options.portrait then
@@ -202,11 +205,13 @@ function ui:position(x_pos, y_pos)
             message_text_offset_y = self._theme_options.portrait.message_offset_y * self._scale
         end
     end
+
     local name_text_offset_x = self._theme_options.name.offset_x * self._scale
     local name_text_offset_y = self._theme_options.name.offset_y * self._scale
 
     self.message_background:pos(x, y)
     self.message_background:size(self._theme_options.message.width * self._scale, self._theme_options.message.height * self._scale)
+
     if self._theme_options.portrait then
         local portrait_offset_x = self._theme_options.portrait.offset_x * self._scale
         local portrait_offset_y = self._theme_options.portrait.offset_y * self._scale
@@ -217,8 +222,10 @@ function ui:position(x_pos, y_pos)
         self.portrait_frame:pos(x + portrait_offset_x, y + portrait_offset_y)
         self.portrait_frame:size(self._theme_options.portrait.width * self._scale, self._theme_options.portrait.height * self._scale)
     end
+
     self.name_background:pos(x + name_bg_offset_x, y + name_bg_offset_y)
     self.name_background:size(self._theme_options.name.width * self._scale, self._theme_options.name.height * self._scale)
+
     if self._theme_options.prompt then
         local prompt_offset_x = self._theme_options.prompt.offset_x * self._scale
         local prompt_offset_y = self._theme_options.prompt.offset_y * self._scale
@@ -228,8 +235,15 @@ function ui:position(x_pos, y_pos)
 
     self.message_text:pos(x + message_text_offset_x, y + message_text_offset_y)
     self.message_text:size(self._theme_options.message.font_size * self._scale)
+
+    local message_text_width = (self._theme_options.message.width * self._scale) - message_text_offset_x - (self._theme_options.message.margin_right * self._scale)
+    local message_text_height = self._theme_options.message.height
+    self.message_text:width(message_text_width)
+    self.message_text:height(message_text_height)
+
     self.name_text:pos(x + name_text_offset_x, y + name_text_offset_y)
     self.name_text:size(self._theme_options.name.font_size * self._scale)
+
     if self._theme_options.timer then
         local timer_text_offset_x = self._theme_options.timer.offset_x * self._scale
         local timer_text_offset_y = self._theme_options.timer.offset_y * self._scale
@@ -393,8 +407,8 @@ function ui:wrap_text(str)
 		end
 	end
 
-	table.insert(result, table.concat(line, ' '):trim())
-	local new_str = table.concat(result, '\n '):trim()
+	table.insert(result, table.concat(line, ' '):trimex())
+	local new_str = table.concat(result, '\n '):trimex()
 
 	return new_str
 end

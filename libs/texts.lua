@@ -138,6 +138,8 @@ local apply_settings = function(_, t, settings)
     texts.stroke_width(t, settings.text.stroke.width)
     texts.stroke_color(t, settings.text.stroke.red, settings.text.stroke.green, settings.text.stroke.blue)
     texts.stroke_alpha(t, settings.text.stroke.alpha)
+    texts.width(t, settings.box_width)
+    texts.height(t, settings.box_height)
 
     call_events(t, 'reload')
 end
@@ -157,8 +159,8 @@ local function get_font_settings(settings)
     end
 
     local font_settings = {
-        box_width = 0,
-        box_height = 0,
+        box_width = settings.box_width,
+        box_height = settings.box_height,
         font_alignment = font_align,
         font_color = d3d.D3DCOLOR_ARGB(settings.text.alpha, settings.text.red, settings.text.green, settings.text.blue),
         font_family = settings.text.font,
@@ -478,7 +480,7 @@ function texts.font(t, ...)
     -- Find the first provided font that is available to use
     local available_font = 'Arial'
     for i, font_name in ipairs(font_list) do
-        font_name = font_name:trim()
+        font_name = font_name:trimex()
         if gdi:get_font_available(font_name) then
             available_font = font_name
             break
@@ -490,6 +492,24 @@ function texts.font(t, ...)
 
     meta[t].settings.text.font = available_font
     meta[t].font_object:set_font_family(available_font)
+end
+
+function texts.width(t, width)
+    if width == nil then
+        return meta[t].settings.box_width
+    end
+
+    meta[t].settings.box_width = width
+    meta[t].font_object:set_box_width(width)
+end
+
+function texts.height(t, height)
+    if height == nil then
+        return meta[t].settings.box_height
+    end
+
+    meta[t].settings.box_height = height
+    meta[t].font_object:set_box_height(height)
 end
 
 function texts.size(t, size)

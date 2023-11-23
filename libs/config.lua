@@ -200,7 +200,7 @@ function merge(t, t_merge, path)
 
                         -- TODO: Remove this after a while, not standard compliant
                         -- Currently needed to not mess up existing settings
-                        res = table.map(res, string.trim)
+                        res = table.map(res, string.trimex)
 
                         if class then
                             if class(oldval) == 'Set' then
@@ -308,7 +308,7 @@ function settings_table(node, settings, key, meta)
 
     for child in node.children:it() do
         if child.type == 'comment' then
-            meta.comments[key] = child.value:trim()
+            meta.comments[key] = child.value:trimex()
         elseif child.type == 'tag' then
             key = child.name:lower()
             local childdict
@@ -404,7 +404,7 @@ function settings_xml(meta)
             lines:append('    <!--')
             local comment_lines = meta.comments.settings:split('\n')
             for comment in comment_lines:it() do
-                lines:append(('        %s'):format(comment:trim()))
+                lines:append(('        %s'):format(comment:trimex()))
             end
 
             lines:append('    -->')
@@ -435,10 +435,10 @@ function nest_xml(t, meta, indentlevel)
         if type(val) == 'table' and not (class(val) == 'List' or class(val) == 'Set') then
             fragments:append(('%s<%s>'):format(indent, key))
             if meta.comments[key] then
-                local c = ('<!-- %s -->'):format(meta.comments[key]:trim()):split('\n')
+                local c = ('<!-- %s -->'):format(meta.comments[key]:trimex()):split('\n')
                 local pre = ''
                 for cstr in c:it() do
-                    fragments:append(('%s%s%s'):format(indent, pre, cstr:trim()))
+                    fragments:append(('%s%s%s'):format(indent, pre, cstr:trimex()))
                     pre = '\t '
                 end
             end
@@ -473,7 +473,7 @@ function nest_xml(t, meta, indentlevel)
 
     for frag_key, key in pairs(inlines) do
         if meta.comments[key] then
-            fragments[frag_key] = ('%s%s<!-- %s -->'):format(fragments[frag_key], (' '):rep(maxlength - fragments[frag_key]:trim():length() + 1), meta.comments[key])
+            fragments[frag_key] = ('%s%s<!-- %s -->'):format(fragments[frag_key], (' '):rep(maxlength - fragments[frag_key]:trimex():length() + 1), meta.comments[key])
         end
     end
 

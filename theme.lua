@@ -1,24 +1,26 @@
-config = require('libs.config')
+local config = require('libs.config')
 
 local theme = {}
 
 local def_file = 'theme.xml'
+local addons_config_dir = ('%s/config/addons/%s/'):format(AshitaCore:GetInstallPath(), addon.name)
 
 local apply_settings = function(theme_settings, lang_code)
     local options = {}
 
-    options.balloon_background = addon.path .. '/themes/' .. theme_settings.name .. '/balloon.png'
-    options.system_background = addon.path .. '/themes/' .. theme_settings.name .. '/system.png'
-    options.portrait_background = addon.path .. '/themes/' .. theme_settings.name .. '/portrait-bg.png'
-    options.portrait_frame = addon.path .. '/themes/' .. theme_settings.name .. '/portrait-frame.png'
-    options.name_background = addon.path .. '/themes/' .. theme_settings.name .. '/name-bg.png'
-    options.prompt_image = addon.path .. '/themes/' .. theme_settings.name .. '/advance-prompt.png'
+    options.balloon_background = theme_settings.theme_dir .. '/balloon.png'
+    options.system_background = theme_settings.theme_dir .. '/system.png'
+    options.portrait_background = theme_settings.theme_dir .. '/portrait-bg.png'
+    options.portrait_frame = theme_settings.theme_dir .. '/portrait-frame.png'
+    options.name_background = theme_settings.theme_dir .. '/name-bg.png'
+    options.prompt_image = theme_settings.theme_dir .. '/advance-prompt.png'
 
     options.message = {}
     options.message.width = theme_settings.message.width
     options.message.height = theme_settings.message.height
     options.message.offset_x = theme_settings.message.textoffsetx
     options.message.offset_y = theme_settings.message.textoffsety
+    options.message.margin_right = theme_settings.message.textmarginright or 0
     options.message.max_length = theme_settings.message.maxlength or 75
     local message_languages = {en=theme_settings.message.fontenglish, ja=theme_settings.message.fontjapanese}
     options.message.font = message_languages[lang_code]
@@ -164,9 +166,8 @@ local apply_settings = function(theme_settings, lang_code)
 end
 
 theme.load = function(theme_name, lang_code)
-    local theme_dir = addon.path .. 'themes/' ..  theme_name
-    -- TODO user dir
-    local theme_dir_user = addon.path .. 'themes/' ..  theme_name
+    local theme_dir = addon.path .. 'themes/' .. theme_name
+    local theme_dir_user = addons_config_dir .. 'themes/' .. theme_name
 
     -- Check if there is a user theme first
     if ashita.fs.exists(theme_dir_user .. '/' .. def_file) then
@@ -179,7 +180,7 @@ theme.load = function(theme_name, lang_code)
 
     -- Load XML theme file
     local theme_def_path = theme_dir .. '/' .. def_file
-	local theme_settings = config.load(theme_def_path, {['name']=theme_name})
+	local theme_settings = config.load(theme_def_path, {['name']=theme_name, ['theme_dir']=theme_dir})
     return apply_settings(theme_settings, lang_code)
 end
 

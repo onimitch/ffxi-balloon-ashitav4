@@ -107,7 +107,7 @@ function files.create_path(f)
     end
 
     newpath = ''
-    for dir in path:psplit('[/\\]'):filter(-''):it() do
+    for dir in path:psplit('[/\\]'):filter(string.notequals('')):it() do
         newpath = newpath .. dir .. '/'
 
         if not ashita.fs.exists(newpath) then

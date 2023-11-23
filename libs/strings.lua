@@ -14,205 +14,208 @@ local string = require('string')
 
 _libs.strings = string
 
-_meta = _meta or {}
+-- _meta = _meta or {}
 
-debug.setmetatable('', {
-    __index = function(str, k)
-        return string[k] or type(k) == 'number' and string.sub(str, k, k) or (_raw and _raw.error or error)(('"%s" is not defined for strings'):format(tostring(k)), 2)
-    end,
-    __unm = functions.negate .. functions.equals,
-    __unp = functions.equals,
-})
+-- debug.setmetatable('', {
+--     __index = function(str, k)
+--         return string[k] or type(k) == 'number' and string.sub(str, k, k) or (_raw and _raw.error or error)(('"%s" is not defined for strings'):format(tostring(k)), 2)
+--     end,
+--     __unm = functions.negate .. functions.equals,
+--     __unp = functions.equals,
+-- })
 
--- Returns a function that returns the string when called.
-function string.fn(str)
-    return functions.const(str)
-end
+-- Used by xml and files instead of -''
+string.notequals = functions.negate .. functions.equals
 
--- Returns true if the string contains a substring.
-function string.contains(str, sub)
-    return str:find(sub, nil, true) ~= nil
-end
+-- -- Returns a function that returns the string when called.
+-- function string.fn(str)
+--     return functions.const(str)
+-- end
 
--- Splits a string into a table by a separator pattern.
-function string.psplit(str, sep, maxsplit, include)
-    maxsplit = maxsplit or 0
+-- -- Returns true if the string contains a substring.
+-- function string.contains(str, sub)
+--     return str:find(sub, nil, true) ~= nil
+-- end
 
-    return str:split(sep, maxsplit, include, false)
-end
+-- -- Splits a string into a table by a separator pattern.
+-- function string.psplit(str, sep, maxsplit, include)
+--     maxsplit = maxsplit or 0
 
-local rawsplit = function(str, sep, maxsplit, include, raw)
-    if not sep or sep == '' then
-        local res = {}
-        local key = 0
-        for c in str:gmatch('.') do
-            key = key + 1
-            res[key] = c
-        end
+--     return str:split(sep, maxsplit, include, false)
+-- end
 
-        return res, key
-    end
+-- local rawsplit = function(str, sep, maxsplit, include, raw)
+--     if not sep or sep == '' then
+--         local res = {}
+--         local key = 0
+--         for c in str:gmatch('.') do
+--             key = key + 1
+--             res[key] = c
+--         end
 
-    maxsplit = maxsplit or 0
-    if raw == nil then
-        raw = true
-    end
+--         return res, key
+--     end
 
-    local res = {}
-    local key = 0
-    local i = 1
-    local startpos, endpos
-    local match
-    while i <= #str + 1 do
-        -- Find the next occurence of sep.
-        startpos, endpos = str:find(sep, i, raw)
-        -- If found, get the substring and append it to the table.
-        if startpos then
-            match = str:sub(i, startpos - 1)
-            key = key + 1
-            res[key] = match
+--     maxsplit = maxsplit or 0
+--     if raw == nil then
+--         raw = true
+--     end
 
-            if include then
-                key = key + 1
-                res[key] = str:sub(startpos, endpos)
-            end
+--     local res = {}
+--     local key = 0
+--     local i = 1
+--     local startpos, endpos
+--     local match
+--     while i <= #str + 1 do
+--         -- Find the next occurence of sep.
+--         startpos, endpos = str:find(sep, i, raw)
+--         -- If found, get the substring and append it to the table.
+--         if startpos then
+--             match = str:sub(i, startpos - 1)
+--             key = key + 1
+--             res[key] = match
 
-            -- If maximum number of splits reached, return
-            if key == maxsplit - 1 then
-                key = key + 1
-                res[key] = str:sub(endpos + 1)
-                break
-            end
-            i = endpos + 1
-        -- If not found, no more separators to split, append the remaining string.
-        else
-            key = key + 1
-            res[key] = str:sub(i)
-            break
-        end
-    end
+--             if include then
+--                 key = key + 1
+--                 res[key] = str:sub(startpos, endpos)
+--             end
 
-    return res, key
-end
+--             -- If maximum number of splits reached, return
+--             if key == maxsplit - 1 then
+--                 key = key + 1
+--                 res[key] = str:sub(endpos + 1)
+--                 break
+--             end
+--             i = endpos + 1
+--         -- If not found, no more separators to split, append the remaining string.
+--         else
+--             key = key + 1
+--             res[key] = str:sub(i)
+--             break
+--         end
+--     end
 
--- Splits a string into a table by a separator string.
-function string.split(str, sep, maxsplit, include, raw)
-    local res, key = rawsplit(str, sep, maxsplit, include, raw)
+--     return res, key
+-- end
 
-    if _meta.L then
-        res.n = key
-        return setmetatable(res, _meta.L)
-    end
+-- -- Splits a string into a table by a separator string.
+-- function string.split(str, sep, maxsplit, include, raw)
+--     local res, key = rawsplit(str, sep, maxsplit, include, raw)
 
-    if _meta.T then
-        return setmetatable(res, _meta.T)
-    end
+--     if _meta.L then
+--         res.n = key
+--         return setmetatable(res, _meta.L)
+--     end
 
-    return res
-end
+--     if _meta.T then
+--         return setmetatable(res, _meta.T)
+--     end
 
--- Alias to string.sub, with some syntactic sugar.
-function string.slice(str, from, to)
-    return str:sub(from or 1, to or #str)
-end
+--     return res
+-- end
 
--- Inserts a string into a given section of another string.
-function string.splice(str, from, to, str2)
-    return str:sub(1, from - 1)..str2..str:sub(to + 1)
-end
+-- -- Alias to string.sub, with some syntactic sugar.
+-- function string.slice(str, from, to)
+--     return str:sub(from or 1, to or #str)
+-- end
 
--- Returns an iterator, that goes over every character of the string.
-function string.it(str)
-    return str:gmatch('.')
-end
+-- -- Inserts a string into a given section of another string.
+-- function string.splice(str, from, to, str2)
+--     return str:sub(1, from - 1)..str2..str:sub(to + 1)
+-- end
 
--- Removes leading and trailing whitespaces and similar characters (tabs, newlines, etc.).
-function string.trim(str)
-    return str:match('^%s*(.-)%s*$')
-end
+-- -- Returns an iterator, that goes over every character of the string.
+-- function string.it(str)
+--     return str:gmatch('.')
+-- end
+
+-- -- Removes leading and trailing whitespaces and similar characters (tabs, newlines, etc.).
+-- function string.trim(str)
+--     return str:match('^%s*(.-)%s*$')
+-- end
 
 -- Collapses all types of spaces into exactly one whitespace
 function string.spaces_collapse(str)
-    return str:gsub('%s+', ' '):trim()
+    return str:gsub('%s+', ' '):trimex()
 end
 
--- Removes all characters in chars from str.
-function string.stripchars(str, chars)
-    return (str:gsub('['..chars:escape()..']', ''))
-end
+-- -- Removes all characters in chars from str.
+-- function string.stripchars(str, chars)
+--     return (str:gsub('['..chars:escape()..']', ''))
+-- end
 
--- Returns the length of a string.
-function string.length(str)
-    return #str
-end
+-- -- Returns the length of a string.
+-- function string.length(str)
+--     return #str
+-- end
 
--- Checks it the string starts with the specified substring.
-function string.startswith(str, substr)
-    return str:sub(1, #substr) == substr
-end
+-- -- Checks it the string starts with the specified substring.
+-- function string.startswith(str, substr)
+--     return str:sub(1, #substr) == substr
+-- end
 
--- Checks it the string ends with the specified substring.
-function string.endswith(str, substr)
-    return str:sub(-#substr) == substr
-end
+-- -- Checks it the string ends with the specified substring.
+-- function string.endswith(str, substr)
+--     return str:sub(-#substr) == substr
+-- end
 
--- Checks if string is enclosed in start and finish. If only one argument is provided, it will check for that string both at the beginning and the end.
-function string.enclosed(str, start, finish)
-    finish = finish or start
-    return str:startswith(start) and str:endswith(finish)
-end
+-- -- Checks if string is enclosed in start and finish. If only one argument is provided, it will check for that string both at the beginning and the end.
+-- function string.enclosed(str, start, finish)
+--     finish = finish or start
+--     return str:startswith(start) and str:endswith(finish)
+-- end
 
--- Returns a string with another string prepended.
-function string.prepend(str, pre)
-    return pre..str
-end
+-- -- Returns a string with another string prepended.
+-- function string.prepend(str, pre)
+--     return pre..str
+-- end
 
--- Returns a string with another string appended.
-function string.append(str, post)
-    return str..post
-end
+-- -- Returns a string with another string appended.
+-- function string.append(str, post)
+--     return str..post
+-- end
 
--- Encloses a string in start and finish. If only one argument is provided, it will enclose it with that string both at the beginning and the end.
-function string.enclose(str, start, finish)
-    finish = finish or start
-    return start..str..finish
-end
+-- -- Encloses a string in start and finish. If only one argument is provided, it will enclose it with that string both at the beginning and the end.
+-- function string.enclose(str, start, finish)
+--     finish = finish or start
+--     return start..str..finish
+-- end
 
--- Returns the same string with the first letter capitalized.
-function string.ucfirst(str)
-    return str:sub(1, 1):upper()..str:sub(2)
-end
+-- -- Returns the same string with the first letter capitalized.
+-- function string.ucfirst(str)
+--     return str:sub(1, 1):upper()..str:sub(2)
+-- end
 
--- Returns the same string with the first letter of every word capitalized.
-function string.capitalize(str)
-    local res = {}
+-- -- Returns the same string with the first letter of every word capitalized.
+-- function string.capitalize(str)
+--     local res = {}
 
-    for _, val in ipairs(str:split(' ')) do
-        res[#res + 1] = val:ucfirst()
-    end
+--     for _, val in ipairs(str:split(' ')) do
+--         res[#res + 1] = val:ucfirst()
+--     end
 
-    return table.concat(res, ' ')
-end
+--     return table.concat(res, ' ')
+-- end
 
--- Takes a padding character pad and pads the string str to the left of it, until len is reached.
-function string.lpad(str, pad, len)
-    return (pad:rep(len) .. str):sub(-(len > #str and len or #str))
-end
+-- -- Takes a padding character pad and pads the string str to the left of it, until len is reached.
+-- function string.lpad(str, pad, len)
+--     return (pad:rep(len) .. str):sub(-(len > #str and len or #str))
+-- end
 
--- Takes a padding character pad and pads the string str to the right of it, until len is reached.
-function string.rpad(str, pad, len)
-    return (str .. pad:rep(len)):sub(1, len > #str and len or #str)
-end
+-- -- Takes a padding character pad and pads the string str to the right of it, until len is reached.
+-- function string.rpad(str, pad, len)
+--     return (str .. pad:rep(len)):sub(1, len > #str and len or #str)
+-- end
 
--- Returns the string padded with zeroes until the length is len.
-function string.zfill(str, len)
-    return str:lpad('0', len)
-end
+-- -- Returns the string padded with zeroes until the length is len.
+-- function string.zfill(str, len)
+--     return str:lpad('0', len)
+-- end
 
--- Checks if a string is empty.
-function string.empty(str)
-    return str == ''
-end
+-- -- Checks if a string is empty.
+-- function string.empty(str)
+--     return str == ''
+-- end
 
 -- (function()
     -- -- Returns a monowidth hex representation of each character of a string, optionally with a separator between chars.
@@ -251,213 +254,213 @@ end
     -- end
 -- end)()
 
--- Returns a string with Lua pattern characters escaped.
-function string.escape(str)
-    return (str:gsub('[[%]%%^$*()%.%+?-]', '%%%1'))
-end
+-- -- Returns a string with Lua pattern characters escaped.
+-- function string.escape(str)
+--     return (str:gsub('[[%]%%^$*()%.%+?-]', '%%%1'))
+-- end
 
--- Returns a Lua pattern from a wildcard string (with ? and * as placeholders for one and many characters respectively).
-function string.wildcard(str)
-    return (str:gsub('[[%]%%^$()%+-.]', '%%%1'):gsub('*', '.*'):gsub('?', '.'))
-end
+-- -- Returns a Lua pattern from a wildcard string (with ? and * as placeholders for one and many characters respectively).
+-- function string.wildcard(str)
+--     return (str:gsub('[[%]%%^$()%+-.]', '%%%1'):gsub('*', '.*'):gsub('?', '.'))
+-- end
 
--- Returns true if the string matches a wildcard pattern.
-string.wmatch = windower.wc_match
+-- -- Returns true if the string matches a wildcard pattern.
+-- string.wmatch = windower.wc_match
 
--- Includes the | operator in the pattern for alternative matches in string.find.
-function string.mfind(str, full_pattern, ...)
-    local patterns = full_pattern:split('|')
+-- -- Includes the | operator in the pattern for alternative matches in string.find.
+-- function string.mfind(str, full_pattern, ...)
+--     local patterns = full_pattern:split('|')
 
-    local found = {}
-    for _, pattern in ipairs(patterns) do
-        local new_found = {str:find(pattern, ...)}
-        if not found[1] or new_found[1] and new_found[1] < found[1] then
-            found = new_found
-        end
-    end
+--     local found = {}
+--     for _, pattern in ipairs(patterns) do
+--         local new_found = {str:find(pattern, ...)}
+--         if not found[1] or new_found[1] and new_found[1] < found[1] then
+--             found = new_found
+--         end
+--     end
 
-    return unpack(found)
-end
+--     return unpack(found)
+-- end
 
--- Includes the | operator in the pattern for alternative matches in string.match.
-function string.mmatch(str, full_pattern, ...)
-    local patterns = full_pattern:split('|')
+-- -- Includes the | operator in the pattern for alternative matches in string.match.
+-- function string.mmatch(str, full_pattern, ...)
+--     local patterns = full_pattern:split('|')
 
-    local found = {}
-    local index = nil
-    for _, pattern in ipairs(patterns) do
-        local start = {str:find(pattern, ...)}
-        if start and (not index or start < index) then
-            found = {str:match(pattern, ...)}
-            index = start
-        end
-    end
+--     local found = {}
+--     local index = nil
+--     for _, pattern in ipairs(patterns) do
+--         local start = {str:find(pattern, ...)}
+--         if start and (not index or start < index) then
+--             found = {str:match(pattern, ...)}
+--             index = start
+--         end
+--     end
 
-    return unpack(found)
-end
+--     return unpack(found)
+-- end
 
--- Includes the | operator in the pattern for alternative matches in string.gsub.
-function string.mgsub(str, full_pattern, ...)
-    local patterns = full_pattern:split('|')
+-- -- Includes the | operator in the pattern for alternative matches in string.gsub.
+-- function string.mgsub(str, full_pattern, ...)
+--     local patterns = full_pattern:split('|')
 
-    for _, pattern in ipairs(patterns) do
-        str = str:gsub(pattern, ...)
-    end
+--     for _, pattern in ipairs(patterns) do
+--         str = str:gsub(pattern, ...)
+--     end
 
-    return str
-end
+--     return str
+-- end
 
--- A string.find wrapper for wildcard patterns.
-function string.wcfind(str, pattern, ...)
-    return str:find(pattern:wildcard(), ...)
-end
+-- -- A string.find wrapper for wildcard patterns.
+-- function string.wcfind(str, pattern, ...)
+--     return str:find(pattern:wildcard(), ...)
+-- end
 
--- A string.match wrapper for wildcard patterns.
-function string.wcmatch(str, pattern, ...)
-    return str:match(pattern:wildcard(), ...)
-end
+-- -- A string.match wrapper for wildcard patterns.
+-- function string.wcmatch(str, pattern, ...)
+--     return str:match(pattern:wildcard(), ...)
+-- end
 
--- A string.gmatch wrapper for wildcard patterns.
-function string.wcgmatch(str, pattern, ...)
-    return str:gmatch(pattern:wildcard(), ...)
-end
+-- -- A string.gmatch wrapper for wildcard patterns.
+-- function string.wcgmatch(str, pattern, ...)
+--     return str:gmatch(pattern:wildcard(), ...)
+-- end
 
--- A string.gsub wrapper for wildcard patterns.
-function string.wcgsub(str, pattern, ...)
-    return str:gsub(pattern:wildcard(), ...)
-end
+-- -- A string.gsub wrapper for wildcard patterns.
+-- function string.wcgsub(str, pattern, ...)
+--     return str:gsub(pattern:wildcard(), ...)
+-- end
 
--- Returns a case-insensitive pattern for a given (non-pattern) string. For patterns, see string.ipattern.
-function string.istring(str)
-    return (str:gsub('%a', function(c) return '['..c:upper()..c:lower()..']' end))
-end
+-- -- Returns a case-insensitive pattern for a given (non-pattern) string. For patterns, see string.ipattern.
+-- function string.istring(str)
+--     return (str:gsub('%a', function(c) return '['..c:upper()..c:lower()..']' end))
+-- end
 
--- Returns a case-insensitive pattern for a given pattern.
-function string.ipattern(str)
-    local res = ''
-    local percent = false
-    local val
-    for c in str:it() do
-        if c == '%' then
-            percent = not percent
-            res = res..c
-        elseif not percent then
-            val = string.byte(c)
-            if val > 64 and val <= 90 or val > 96 and val <= 122 then
-                res = res..'['..c:upper()..c:lower()..']'
-            else
-                res = res..c
-            end
-        else
-            percent = false
-            res = res..c
-        end
-    end
+-- -- Returns a case-insensitive pattern for a given pattern.
+-- function string.ipattern(str)
+--     local res = ''
+--     local percent = false
+--     local val
+--     for c in str:it() do
+--         if c == '%' then
+--             percent = not percent
+--             res = res..c
+--         elseif not percent then
+--             val = string.byte(c)
+--             if val > 64 and val <= 90 or val > 96 and val <= 122 then
+--                 res = res..'['..c:upper()..c:lower()..']'
+--             else
+--                 res = res..c
+--             end
+--         else
+--             percent = false
+--             res = res..c
+--         end
+--     end
 
-    return res
-end
+--     return res
+-- end
 
--- A string.find wrapper for case-insensitive patterns.
-function string.ifind(str, pattern, ...)
-    return str:find(pattern:ipattern(), ...)
-end
+-- -- A string.find wrapper for case-insensitive patterns.
+-- function string.ifind(str, pattern, ...)
+--     return str:find(pattern:ipattern(), ...)
+-- end
 
--- A string.match wrapper for case-insensitive patterns.
-function string.imatch(str, pattern, ...)
-    return str:match(pattern:ipattern(), ...)
-end
+-- -- A string.match wrapper for case-insensitive patterns.
+-- function string.imatch(str, pattern, ...)
+--     return str:match(pattern:ipattern(), ...)
+-- end
 
--- A string.gmatch wrapper for case-insensitive patterns.
-function string.igmatch(str, pattern, ...)
-    return str:gmatch(pattern:ipattern(), ...)
-end
+-- -- A string.gmatch wrapper for case-insensitive patterns.
+-- function string.igmatch(str, pattern, ...)
+--     return str:gmatch(pattern:ipattern(), ...)
+-- end
 
--- A string.gsub wrapper for case-insensitive patterns.
-function string.igsub(str, pattern, ...)
-    if not ... then print(debug.traceback()) end
-    return str:gsub(pattern:ipattern(), ...)
-end
+-- -- A string.gsub wrapper for case-insensitive patterns.
+-- function string.igsub(str, pattern, ...)
+--     if not ... then print(debug.traceback()) end
+--     return str:gsub(pattern:ipattern(), ...)
+-- end
 
--- A string.find wrapper for case-insensitive wildcard patterns.
-function string.iwcfind(str, pattern, ...)
-    return str:wcfind(pattern:ipattern(), ...)
-end
+-- -- A string.find wrapper for case-insensitive wildcard patterns.
+-- function string.iwcfind(str, pattern, ...)
+--     return str:wcfind(pattern:ipattern(), ...)
+-- end
 
--- A string.match wrapper for case-insensitive wildcard patterns.
-function string.iwcmatch(str, pattern, ...)
-    return str:wcmatch(pattern:ipattern(), ...)
-end
+-- -- A string.match wrapper for case-insensitive wildcard patterns.
+-- function string.iwcmatch(str, pattern, ...)
+--     return str:wcmatch(pattern:ipattern(), ...)
+-- end
 
--- A string.gmatch wrapper for case-insensitive wildcard patterns.
-function string.iwcgmatch(str, pattern, ...)
-    return str:wcgmatch(pattern:ipattern(), ...)
-end
+-- -- A string.gmatch wrapper for case-insensitive wildcard patterns.
+-- function string.iwcgmatch(str, pattern, ...)
+--     return str:wcgmatch(pattern:ipattern(), ...)
+-- end
 
--- A string.gsub wrapper for case-insensitive wildcard patterns.
-function string.iwcgsub(str, pattern, ...)
-    return str:wcgsub(pattern:ipattern(), ...)
-end
+-- -- A string.gsub wrapper for case-insensitive wildcard patterns.
+-- function string.iwcgsub(str, pattern, ...)
+--     return str:wcgsub(pattern:ipattern(), ...)
+-- end
 
--- Returns a string with all instances of ${str} replaced with either a table or function lookup.
-function string.keysub(str, sub)
-    return str:gsub('${(.-)}', sub)
-end
+-- -- Returns a string with all instances of ${str} replaced with either a table or function lookup.
+-- function string.keysub(str, sub)
+--     return str:gsub('${(.-)}', sub)
+-- end
 
--- Counts the occurrences of a substring in a string.
-function string.count(str, sub)
-    return str:pcount(sub:escape())
-end
+-- -- Counts the occurrences of a substring in a string.
+-- function string.count(str, sub)
+--     return str:pcount(sub:escape())
+-- end
 
--- Counts the occurrences of a pattern in a string.
-function string.pcount(str, pat)
-    return string.gsub[2](str, pat, '')
-end
+-- -- Counts the occurrences of a pattern in a string.
+-- function string.pcount(str, pat)
+--     return string.gsub[2](str, pat, '')
+-- end
 
--- Splits the original string into substrings of equal size (except for possibly the last one)
-function string.chunks(str, size)
-    local res = {}
-    local key = 0
-    for i = 1, #str, size do
-        key = key + 1
-        rawset(res, key, str:sub(i, i + size - 1))
-    end
+-- -- Splits the original string into substrings of equal size (except for possibly the last one)
+-- function string.chunks(str, size)
+--     local res = {}
+--     local key = 0
+--     for i = 1, #str, size do
+--         key = key + 1
+--         rawset(res, key, str:sub(i, i + size - 1))
+--     end
 
-    if _libs.lists then
-        res.n = key
-        return setmetatable(res, _meta.L)
-    else
-        return res
-    end
-end
+--     if _libs.lists then
+--         res.n = key
+--         return setmetatable(res, _meta.L)
+--     else
+--         return res
+--     end
+-- end
 
--- Returns a string decoded given the appropriate encoding.
-string.decode = function(str, encoding)
-    return (str:binary():chunks(encoding.bits):map(table.get+{encoding.charset} .. tonumber-{2}):concat():gsub('%z.*$', ''))
-end
+-- -- Returns a string decoded given the appropriate encoding.
+-- string.decode = function(str, encoding)
+--     return (str:binary():chunks(encoding.bits):map(table.get+{encoding.charset} .. tonumber-{2}):concat():gsub('%z.*$', ''))
+-- end
 
--- Returns a string encoded given the appropriate encoding.
-string.encode = function(str, encoding)
-    local binary = str:map(string.zfill-{encoding.bits} .. math.binary .. table.find+{encoding.charset})
-    if encoding.terminator then
-        binary = binary .. encoding.terminator(str)
-    end
-    return binary:rpad('0', (#binary / 8):ceil() * 8):parse_binary()
-end
+-- -- Returns a string encoded given the appropriate encoding.
+-- string.encode = function(str, encoding)
+--     local binary = str:map(string.zfill-{encoding.bits} .. math.binary .. table.find+{encoding.charset})
+--     if encoding.terminator then
+--         binary = binary .. encoding.terminator(str)
+--     end
+--     return binary:rpad('0', (#binary / 8):ceil() * 8):parse_binary()
+-- end
 
--- Returns a plural version of a string, if the provided table contains more than one element.
--- Defaults to appending an s, but accepts an option string as second argument which it will the string with.
-function string.plural(str, t, replace)
-    if type(t) == 'number' and t > 1 or #t > 1 then
-        return replace or str..'s'
-    end
+-- -- Returns a plural version of a string, if the provided table contains more than one element.
+-- -- Defaults to appending an s, but accepts an option string as second argument which it will the string with.
+-- function string.plural(str, t, replace)
+--     if type(t) == 'number' and t > 1 or #t > 1 then
+--         return replace or str..'s'
+--     end
 
-    return str
-end
+--     return str
+-- end
 
--- tonumber wrapper
-function string.number(...)
-    return tonumber(...)
-end
+-- -- tonumber wrapper
+-- function string.number(...)
+--     return tonumber(...)
+-- end
 
 -- Returns a formatted item list for use in natural language representation of a number of items.
 -- The second argument specifies how the trailing element is handled:

@@ -1,6 +1,6 @@
-require('common')
+-- require('common')
 
-local defaults = T{}
+local defaults = {}
 
 defaults.DisplayMode = 2
 defaults.MovementCloses = false
