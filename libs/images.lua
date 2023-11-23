@@ -115,6 +115,8 @@ local apply_settings = function(_, t, settings)
     call_events(t, 'reload')
 end
 
+local d3d_image_info = ffi.new('D3DXIMAGE_INFO')
+
 local function load_texture(texture_path)
     if texture_path == nil or texture_path == '' then
         return nil
@@ -126,13 +128,24 @@ local function load_texture(texture_path)
         return nil;
     end
 
-    local texture_ptr = ffi.new('IDirect3DTexture8*[1]');
+    if (C.D3DXGetImageInfoFromFileA(path, d3d_image_info) ~= C.S_OK) then
+        print('Load texture info failed: ' .. path)
+        return nil;
+    end
+
+    local texture_ptr = ffi.new('IDirect3DTexture8*[1]')
     if (C.D3DXCreateTextureFromFileA(d3d8dev, path, texture_ptr) ~= C.S_OK) then
         print('Load texture failed: ' .. path)
         return nil;
     end
 
-    return d3d.gc_safe_release(ffi.cast('IDirect3DTexture8*', texture_ptr[0]));
+    local texture_info = T{
+        ptr = d3d.gc_safe_release(ffi.cast('IDirect3DTexture8*', texture_ptr[0])),
+        width = tonumber(d3d_image_info.Width),
+        height = tonumber(d3d_image_info.Height),
+    }
+
+    return texture_info
 end
 
 function images.new(str, settings, root_settings)

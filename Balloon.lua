@@ -1,35 +1,6 @@
--- Copyright 2018, Hando
--- Copyright 2021, Yuki
--- Copyright 2022, Ghosty
--- All rights reserved.
-
--- Redistribution and use in source and binary forms, with or without
--- modification, are permitted provided that the following conditions are met:
-
-    -- * Redistributions of source code must retain the above copyright
-      -- notice, this list of conditions and the following disclaimer.
-    -- * Redistributions in binary form must reproduce the above copyright
-      -- notice, this list of conditions and the following disclaimer in the
-      -- documentation and/or other materials provided with the distribution.
-    -- * Neither the name of Balloon nor the
-      -- names of its contributors may be used to endorse or promote products
-      -- derived from this software without specific prior written permission.
-
--- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
--- ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
--- WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
--- DISCLAIMED. IN NO EVENT SHALL Hando BE LIABLE FOR ANY
--- DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
--- (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
--- LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
--- ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
--- (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
--- SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
---
 addon.name      = 'Balloon';
-addon.author    = 'Originally by Hando, English support added by Yuki & Kenshi, themes added by Ghosty. Ported to Ashita v4 by onimitch.';
-addon.version   = '0.2';
+addon.author    = 'Originally by Hando, English support added by Yuki & Kenshi, themes added by Ghosty, ported to Ashita v4 by onimitch.';
+addon.version   = '1.0';
 addon.desc      = 'Displays NPC chat logs in a UI Balloon, similar to FF14.';
 addon.link      = '';
 
@@ -38,9 +9,9 @@ local chat = require('chat')
 settingsLib = require('settings')
 local encoding = require('gdifonts.encoding')
 
+-- TODO: Drop this once no libs depend on it existing
 windower = windower or {}
 
-config = require('libs.config')
 chars = require('libs.chat.chars')
 chars.cldquo = string.char(0x87, 0xB2)
 chars.crdquo = string.char(0x87, 0xB3)
@@ -54,6 +25,32 @@ local theme = require('theme')
 local theme_options = {}
 
 local ui = require('ui')
+
+
+-- TODO
+
+-- Rename TextOffsetX to TextMarginLeft
+-- Add TextMarginRight
+-- If TextMarginRight non 0, set gdi font bounding box
+-- Disable manual wrapping and let GDI wrap if needed
+
+-- Can GDI wrap automatically?
+-- Adjust line length or wrap based on pixel width if possible
+
+-- Check if font available (ffvii-r & snes-ff)
+-- Pick font based on language
+-- Support list of fonts in xml with comma sep
+
+-- Timer close
+-- SettingsLib.Load user settings
+
+-- Support command args
+-- Strip unused windower libs
+-- Strip any other unused code
+
+-- Strip out debug prints
+-- Tidy up error prints
+
 
 local MODE = {}
 MODE.MESSAGE = 150
@@ -75,7 +72,6 @@ local PROMPT_CHARS = string.char(0x7F,0x31)
 local AUTO_PROMPT_CHARS = string.char(0x7F,0x34,0x01)
 
 local balloon = {}
-balloon.initialized = false
 balloon.debug = 'off'
 balloon.moving = false
 balloon.old_x = "0"
@@ -92,6 +88,7 @@ balloon.last_text = ''
 balloon.last_mode = 0
 balloon.movement_thread = nil
 balloon.processing_message = false
+balloon.lang_code = 'en'
 
 -------------------------------------------------------------------------------
 
@@ -99,6 +96,13 @@ local function initialize()
     -- local user_settings = settingsLib.load(defaults)
     -- TODO: settingsLib.load(defaults) is generating errors in process_settings
 	settings = defaults -- user_settings.settings -- defaults
+
+    -- Get game language
+    local lang = AshitaCore:GetConfigurationManager():GetInt32('boot', 'ashita.language', 'playonline', 2)
+    balloon.lang_code = 'en'
+    if lang == 1 then
+        balloon.lang_code = 'ja'
+    end
 
 	apply_theme()
 
@@ -109,28 +113,28 @@ local function initialize()
 	-- 	balloon.movement_thread = moving_check:schedule(0)
 	-- end
 
-	balloon.initialized = true
-    print(chat.header(addon.name):append(chat.message('Balloon initialized')))
+	if theme_options ~= nil then
+        print(chat.header(addon.name):append(chat.message('Loaded Theme "%s" Language "%s" '):format(settings.Theme, balloon.lang_code)))
+    end
 end
 
 function apply_theme()
-	local theme_path = 'themes/' .. settings.Theme .. '/theme.xml'
-    print(chat.header(addon.name):append(chat.message('theme_path: %s'):fmt(theme_path)))
-	local theme_settings = config.load(theme_path, {['name']=settings.Theme})
+    -- Load the theme
+    theme_options = theme.load(settings.Theme, balloon.lang_code)
+    if theme_options == nil then
+        return
+    end
 
-	theme_options = theme.apply(theme_settings)
-
+    -- Load UI
 	ui:load(settings, theme_options)
+
+    -- Display balloon if we changed theme while open
 	if balloon.on then
 		process_balloon(balloon.last_text, balloon.last_mode)
 	end
 end
 
 local function open(timed)
-	if not balloon.initialized then
-		initialize()
-	end
-
 	if timed then
 		balloon.close_timer = settings.NoPromptCloseDelay
 		ui.timer_text:text(''..balloon.close_timer)
@@ -186,7 +190,6 @@ end
 -- end)
 
 ashita.events.register('load', 'load_cb', function()
-    print(chat.header(addon.name):append(chat.message('load_cb')))
     initialize()
 end)
 
@@ -195,7 +198,6 @@ ashita.events.register('unload', 'unload_cb', function ()
 end)
 
 settingsLib.register('settings', 'settings_update', function (s)
-    print(chat.header(addon.name):append(chat.message('settings_update')))
 	initialize()
 end)
 
@@ -233,7 +235,10 @@ function moving_check()
 end
 
 ashita.events.register('packet_in', 'packet_in_cb', function(e)
--- windower.register_event('incoming chunk',function(id,original,modified,injected,blocked)
+    if theme_options == nil then
+        return
+    end
+
 	-- if S{'chunk', 'all'}[balloon.debug] then print("Chunk: " .. string.format('0x%02X', e.id) .. " original: " .. e.data_modified) end
 
 	--会話中かの確認 (Check if you have left a conversation)
@@ -243,7 +248,10 @@ ashita.events.register('packet_in', 'packet_in_cb', function(e)
 end)
 
 ashita.events.register('text_in', 'text_in_cb', function (e)
--- windower.register_event('incoming text',function(original,modified,mode,modified_mode,blocked)
+    if theme_options == nil then
+        return
+    end
+
     if not balloon.processing_message then
         balloon.processing_message = true
         
@@ -258,7 +266,7 @@ function process_incoming_message(e)
     local mode = bit.band(e.mode_modified,  0x000000FF);
 
 	-- print debug info
-	-- if S{'codes', 'mode', 'all'}[balloon.debug] then print("Mode: " .. mode .. " Text: " .. e.message) end
+	if S{'codes', 'mode', 'all'}[balloon.debug] then print("Mode: " .. mode .. " Text: " .. e.message) end
 
 	-- skip text modes that aren't NPC speech
     if not S{MODE.MESSAGE, MODE.SYSTEM, MODE.TIMED_BATTLE, MODE.TIMED_MESSAGE}[mode] then 
@@ -282,10 +290,6 @@ function process_incoming_message(e)
 end
 
 function process_balloon(npc_text, mode)
-	if not balloon.initialized then
-		initialize()
-	end
-
 	balloon.last_text = npc_text
 	balloon.last_mode = mode
 
@@ -600,8 +604,11 @@ end
 -- 	config.save(settings)
 -- end)
 
-ashita.events.register('d3d_present', 'd3d_present_callback1', function ()
--- windower.register_event("prerender",function()
+ashita.events.register('d3d_present', 'd3d_present_callback', function ()
+    if theme_options == nil then
+        return
+    end
+
 	-- animate our text advance indicator bouncing up and down
 	balloon.frame_count = balloon.frame_count + 1
 	if balloon.frame_count > 60*math.pi*2 then balloon.frame_count = balloon.frame_count - 60*math.pi*2 end
@@ -654,9 +661,9 @@ end)
 -- 	end
 -- end)
 
-function update_position()
-	settings.Position.X = ui.message_background:pos_x() + ui.message_background:width() / 2
-	settings.Position.Y = ui.message_background:pos_y() + ui.message_background:height() / 2
+-- function update_position()
+-- 	settings.Position.X = ui.message_background:pos_x() + ui.message_background:width() / 2
+-- 	settings.Position.Y = ui.message_background:pos_y() + ui.message_background:height() / 2
 
-	ui:position(settings.Position.X, settings.Position.Y)
-end
+-- 	ui:position(settings.Position.X, settings.Position.Y)
+-- end

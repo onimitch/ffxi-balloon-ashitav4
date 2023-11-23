@@ -8,13 +8,6 @@ local encoding = require('gdifonts.encoding')
 
 local ui = {}
 
-local text_setup = {
-    flags = {
-        draggable = false
-    },
-    padding = 2
-}
-
 ui.message_background = images.new()
 ui.portrait_background = images.new()
 ui.portrait = images.new()
@@ -22,9 +15,9 @@ ui.portrait_frame = images.new()
 ui.name_background = images.new()
 ui.prompt = images.new()
 
-ui.message_text = texts.new(text_setup)
-ui.name_text = texts.new(text_setup)
-ui.timer_text = texts.new(text_setup)
+ui.message_text = texts.new()
+ui.name_text = texts.new()
+ui.timer_text = texts.new()
 
 ui._hidden = true
 ui._current_text = ''
@@ -56,7 +49,7 @@ end
 local function setup_text(text, text_options)
     text:bg_alpha(0)
     text:bg_visible(false)
-    text:font(text_options.font, 'meiryo', 'segoe ui', 'sans-serif')
+    text:font(unpack(text_options.font:split(',')))
     text:size(text_options.font_size)
     text:alpha(text_options.font_color.alpha)
     text:color(text_options.font_color.red, text_options.font_color.green, text_options.font_color.blue)
@@ -324,7 +317,6 @@ function ui:set_type(type)
 end
 
 function ui:set_character(name)
-    print('ui:set_character: "' .. name .. '"')
     self.name_text:text(' '..name)
 
     local zone_id = tonumber(AshitaCore:GetMemoryManager():GetParty():GetMemberZone(0))
@@ -402,21 +394,15 @@ function ui:wrap_text(str)
 	end
 
 	table.insert(result, table.concat(line, ' '):trim())
-    -- print('ui:wrap_text: lines=' .. #result)
 	local new_str = table.concat(result, '\n '):trim()
-
-    -- print('ui:wrap_text: new_str=' .. encoding:UTF8_To_ShiftJIS(new_str))
 
 	return new_str
 end
 
 function ui:set_message(message)
-    print('ui:set_message: "' .. encoding:UTF8_To_ShiftJIS(message) .. '"')
-
     self._current_text = message
     self._chars_shown = 0
     self.message_text:text('')
-    -- self.message_text:text(message)
 
     -- this is here to update the layout depending if there's a portrait or not
     self:position()
@@ -448,34 +434,39 @@ function ui:hidden()
     return self._hidden
 end
 
-local debug_render = true
+local debug_render = false
+local d3dwhite = d3d.D3DCOLOR_ARGB(255, 255, 255, 255)
 
-local function render_image(sprite, image, scale)
+local function render_image(sprite, image)
     if not image:visible() then
         return
     end
 
-    ui._rect.right = image:width()
-    ui._rect.bottom = image:height()
-    ui._vec_position.x = image:pos_x()
-    ui._vec_position.y = image:pos_y()
-    ui._vec_scale.x = scale
-    ui._vec_scale.y = scale
+    local texture = image:texture()
+    local vec_position = ui._vec_position
+    local vec_scale = ui._vec_scale
+    local rect = ui._rect
+
+    rect.right = texture.width
+    rect.bottom = texture.height
+    vec_position.x = image:pos_x()
+    vec_position.y = image:pos_y()
+
+    -- Calc correct scale to render at
+    vec_scale.x = image:width() / texture.width
+    vec_scale.y = image:height() / texture.height
 
     local red, green, blue = image:color()
     local color = d3d.D3DCOLOR_ARGB(image:alpha(), red, green, blue)
 
-    -- if debug_render then
-    --     print('UI Scale: ' .. scale)
-    --     print(('ui render image: %s, x%d y%d (%d, %d), a%d'):format(image:path(), image:pos_x(), image:pos_y(), image:width(), image:height(), image:alpha()))
-    -- end
+    if debug_render then
+        print(('ui render image: %s, x%d y%d (%d, %d), a%d'):format(image:path(), image:pos_x(), image:pos_y(), image:width(), image:height(), image:alpha()))
+    end
 
-    sprite:Draw(image:texture(), ui._rect, ui._vec_scale, nil, 0.0, ui._vec_position, color)
+    sprite:Draw(image:texture().ptr, rect, vec_scale, nil, 0.0, vec_position, color)
 end
 
-local d3dwhite = d3d.D3DCOLOR_ARGB(255, 255, 255, 255)
-
-local function render_text(sprite, text, scale)
+local function render_text(sprite, text)
     local obj = text:font_object()
 
     if (obj.settings.visible) then
@@ -483,8 +474,8 @@ local function render_text(sprite, text, scale)
         if (texture ~= nil) then
             local vec_position = ui._vec_position
             local vec_scale = ui._vec_scale
-            vec_scale.x = scale
-            vec_scale.y = scale
+            vec_scale.x = 1
+            vec_scale.y = 1
 
             if (obj.settings.font_alignment == gdi.Alignment.Center) then
                 vec_position.x = obj.settings.position_x - (rect.right / 2)
@@ -494,6 +485,7 @@ local function render_text(sprite, text, scale)
                 vec_position.x = obj.settings.position_x
             end
             vec_position.y = obj.settings.position_y
+
             sprite:Draw(texture, rect, vec_scale, nil, 0.0, vec_position, d3dwhite)
         end
     end
@@ -506,16 +498,16 @@ function ui:render()
 
     sprite:Begin()
 
-    render_image(sprite, ui.message_background, self._scale)
-    render_image(sprite, ui.portrait_background, self._scale)
-    render_image(sprite, ui.portrait, self._scale)
-    render_image(sprite, ui.portrait_frame, self._scale)
-    render_image(sprite, ui.name_background, self._scale)
-    render_image(sprite, ui.prompt, self._scale)
+    render_image(sprite, ui.message_background)
+    render_image(sprite, ui.portrait_background)
+    render_image(sprite, ui.portrait)
+    render_image(sprite, ui.portrait_frame)
+    render_image(sprite, ui.name_background)
+    render_image(sprite, ui.prompt)
 
-    render_text(sprite, ui.message_text, self._scale)
-    render_text(sprite, ui.name_text, self._scale)
-    render_text(sprite, ui.timer_text, self._scale)
+    render_text(sprite, ui.message_text)
+    render_text(sprite, ui.name_text)
+    render_text(sprite, ui.timer_text)
 
     sprite:End()
 

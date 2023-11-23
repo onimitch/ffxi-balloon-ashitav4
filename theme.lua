@@ -1,6 +1,10 @@
+config = require('libs.config')
+
 local theme = {}
 
-theme.apply = function(theme_settings)
+local def_file = 'theme.xml'
+
+local apply_settings = function(theme_settings, lang_code)
     local options = {}
 
     options.balloon_background = addon.path .. '/themes/' .. theme_settings.name .. '/balloon.png'
@@ -16,8 +20,8 @@ theme.apply = function(theme_settings)
     options.message.offset_x = theme_settings.message.textoffsetx
     options.message.offset_y = theme_settings.message.textoffsety
     options.message.max_length = theme_settings.message.maxlength or 75
-    local message_languages = {English=theme_settings.message.fontenglish, Japanese=theme_settings.message.fontjapanese}
-    options.message.font = message_languages['English'] --windower.ffxi.get_info().language]
+    local message_languages = {en=theme_settings.message.fontenglish, ja=theme_settings.message.fontjapanese}
+    options.message.font = message_languages[lang_code]
     options.message.font_size = theme_settings.message.size
     options.message.font_color = {}
     options.message.font_color.alpha = theme_settings.message.dialogue.color.alpha
@@ -81,8 +85,7 @@ theme.apply = function(theme_settings)
     options.name.offset_y = theme_settings.npcname.textoffsety
     options.name.background_offset_x = theme_settings.npcname.offsetx
     options.name.background_offset_y = theme_settings.npcname.offsety
-    local name_languages = {English=theme_settings.npcname.fontenglish, Japanese=theme_settings.npcname.fontjapanese}
-    options.name.font = name_languages['English'] -- windower.ffxi.get_info().language]
+    options.name.font = theme_settings.npcname.font
     options.name.font_size = theme_settings.npcname.size
     options.name.font_color = {}
     options.name.font_color.alpha = theme_settings.npcname.color.alpha
@@ -121,12 +124,12 @@ theme.apply = function(theme_settings)
     if theme_settings.timer then
         options.timer.offset_x = theme_settings.timer.textoffsetx or theme_settings.prompt.offsetx
         options.timer.offset_y = theme_settings.timer.textoffsety or theme_settings.prompt.offsety
-        local timer_languages = {English=theme_settings.timer.fontenglish or theme_settings.message.fontenglish,
-                                 Japanese=theme_settings.timer.fontjapanese or theme_settings.message.fontjapanese}
-        options.timer.font = timer_languages['English'] --windower.ffxi.get_info().language]
-        -- TODO: Why is theme_settings.timer.size a function???
-        -- options.timer.font_size = theme_settings.timer.size or theme_settings.message.size
+        options.timer.font = theme_settings.timer.font or theme_settings.npcname.font
+
         options.timer.font_size = theme_settings.message.size
+        if type(theme_settings.timer.size) == 'number' then
+            options.timer.font_size = theme_settings.timer.size
+        end
 
         options.timer.font_color = {}
         if theme_settings.timer.color then
@@ -158,6 +161,26 @@ theme.apply = function(theme_settings)
     end
 
     return options
+end
+
+theme.load = function(theme_name, lang_code)
+    local theme_dir = addon.path .. 'themes/' ..  theme_name
+    -- TODO user dir
+    local theme_dir_user = addon.path .. 'themes/' ..  theme_name
+
+    -- Check if there is a user theme first
+    if ashita.fs.exists(theme_dir_user .. '/' .. def_file) then
+        theme_dir = theme_dir_user
+    -- Fall back to built in themes dir
+    elseif not ashita.fs.exists(theme_dir .. '/' .. def_file) then
+        print('Theme not found: ' .. theme_name .. ', searched: "' .. theme_dir .. '" and "' .. theme_dir_user .. '"')
+        return nil
+    end
+
+    -- Load XML theme file
+    local theme_def_path = theme_dir .. '/' .. def_file
+	local theme_settings = config.load(theme_def_path, {['name']=theme_name})
+    return apply_settings(theme_settings, lang_code)
 end
 
 return theme

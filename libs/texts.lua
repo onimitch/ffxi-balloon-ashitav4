@@ -92,6 +92,9 @@ math.randomseed(os.clock())
 -- Since gdi uses font height not size, we apply a modifier to make it fit a bit closer to what we expect
 local gdi_font_size_modifier = 1.5
 
+-- Keep track of fonts we've found are unavailable
+local unavailable_fonts = S{}
+
 local amend
 amend = function(settings, defaults)
     for key, val in pairs(defaults) do
@@ -124,7 +127,7 @@ local apply_settings = function(_, t, settings)
     texts.bg_visible(t, settings.bg.visible)
     texts.color(t, settings.text.red, settings.text.green, settings.text.blue)
     texts.alpha(t, settings.text.alpha)
-    texts.font(t, settings.text.font, unpack(settings.text.fonts))
+    texts.font(t, unpack(settings.text.fonts))
     texts.size(t, settings.text.size)
     texts.pad(t, settings.padding)
     texts.italic(t, settings.flags.italic)
@@ -154,8 +157,8 @@ local function get_font_settings(settings)
     end
 
     local font_settings = {
-        box_height = 0,
         box_width = 0,
+        box_height = 0,
         font_alignment = font_align,
         font_color = d3d.D3DCOLOR_ARGB(settings.text.alpha, settings.text.red, settings.text.green, settings.text.blue),
         font_family = settings.text.font,
@@ -469,9 +472,24 @@ function texts.font(t, ...)
     end
 
     -- windower.text.set_font(meta[t].name, ...)
-    meta[t].settings.text.font = (...)
-    meta[t].settings.text.fonts = {select(2, ...)}
-    meta[t].font_object:set_font_family(meta[t].settings.text.font)
+    local font_list = {select(1, ...)}
+    meta[t].settings.text.fonts = font_list
+
+    -- Find the first provided font that is available to use
+    local available_font = 'Arial'
+    for i, font_name in ipairs(font_list) do
+        font_name = font_name:trim()
+        if gdi:get_font_available(font_name) then
+            available_font = font_name
+            break
+        elseif not unavailable_fonts[font_name] then
+            unavailable_fonts:add(font_name)
+            print('Font not found: ' .. font_name)
+        end
+    end
+
+    meta[t].settings.text.font = available_font
+    meta[t].font_object:set_font_family(available_font)
 end
 
 function texts.size(t, size)
