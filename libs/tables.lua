@@ -24,13 +24,13 @@ _libs.tables = table
     Signatures
 ]]
 
--- _meta = _meta or {}
--- _meta.T = _meta.T or {}
--- _meta.T.__index = table
--- _meta.T.__class = 'Table'
+_meta = _meta or {}
+_meta.T = _meta.T or {}
+_meta.T.__index = table
+_meta.T.__class = 'Table'
 
--- _meta.N = {}
--- _meta.N.__class = 'nil'
+_meta.N = {}
+_meta.N.__class = 'nil'
 
 -- -- Constructor for T-tables.
 -- -- t = T{...} for explicit declaration.

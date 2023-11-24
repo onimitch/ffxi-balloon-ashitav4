@@ -67,9 +67,9 @@ local function setup_sprite()
 end
 
 function ui:load(settings, theme_options)
-    self._theme = settings.Theme
-    self._scale = settings.Scale
-    self._global_show_portraits = settings.ShowPortraits
+    self._theme = settings.theme
+    self._scale = settings.scale
+    self._global_show_portraits = settings.portraits
     self._theme_options = theme_options
 
     self._dialogue_settings.path = theme_options.balloon_background
@@ -124,12 +124,13 @@ function ui:load(settings, theme_options)
     end
 
     setup_text(self.message_text, theme_options.message)
+    self.message_text:regions(true)
     setup_text(self.name_text, theme_options.name)
     if theme_options.timer then
         setup_text(self.timer_text, theme_options.timer)
     end
 
-    self:position(settings.Position.X, settings.Position.Y)
+    self:position(settings.position.x, settings.position.y)
 
     self.message_background:draggable(true)
 end
@@ -236,8 +237,8 @@ function ui:position(x_pos, y_pos)
     self.message_text:pos(x + message_text_offset_x, y + message_text_offset_y)
     self.message_text:size(self._theme_options.message.font_size * self._scale)
 
-    local message_text_width = (self._theme_options.message.width * self._scale) - message_text_offset_x - (self._theme_options.message.margin_right * self._scale)
-    local message_text_height = self._theme_options.message.height
+    local message_text_width = (self._theme_options.message.width - self._theme_options.message.margin_right) * self._scale - message_text_offset_x
+    local message_text_height = self._theme_options.message.height * self._scale
     self.message_text:width(message_text_width)
     self.message_text:height(message_text_height)
 

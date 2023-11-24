@@ -2,14 +2,13 @@
 <settings>
     <global>
         <NpcName>
-            <FontEnglish>Meiryo</FontEnglish>
-            <FontJapanese>Meiryo</FontJapanese>
+            <Font>Segoe UI, Calibri, Cambria</Font>
             <Size>12</Size>
             <Width>360</Width>
             <Height>43</Height>
             <OffsetX>10</OffsetX>
             <OffsetY>-23</OffsetY>
-            <TextOffsetX>45</TextOffsetX>
+            <TextOffsetX>60</TextOffsetX>
             <TextOffsetY>-15</TextOffsetY>
             <Color>
                 <Alpha>255</Alpha>
@@ -26,14 +25,15 @@
             </Stroke>
         </NpcName>
         <Message>
-            <FontEnglish>Meiryo</FontEnglish>
-            <FontJapanese>Meiryo</FontJapanese>
-            <Size>10</Size>
+            <FontEnglish>Segoe UI, Calibri, Cambria</FontEnglish>
+            <FontJapanese>Noto Sans JP, Meiryo</FontJapanese>
+            <Size>13</Size>
             <MaxLength>81</MaxLength>
             <Width>647</Width>
             <Height>127</Height>
             <TextOffsetX>45</TextOffsetX>
-            <TextOffsetY>-8</TextOffsetY>
+            <TextOffsetY>15</TextOffsetY>
+            <TextMarginRight>45</TextMarginRight>
             <Dialogue>
                 <Color>
                     <Alpha>255</Alpha>
@@ -89,7 +89,7 @@
             <OffsetY>17</OffsetY>
             <MaxLength>64</MaxLength>
             <MessageTextOffsetX>135</MessageTextOffsetX>
-            <MessageTextOffsetY>-8</MessageTextOffsetY>
+            <MessageTextOffsetY>15</MessageTextOffsetY>
         </Portrait>
     </global>
 </settings>

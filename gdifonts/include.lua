@@ -31,6 +31,7 @@ ffi.cdef[[
         uint32_t GradientColor;
         char     FontFamily[256];
         char     FontText[4096];
+        bool     Regions;
     } GdiFontData_t;
 
     typedef struct {

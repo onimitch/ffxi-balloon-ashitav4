@@ -140,6 +140,7 @@ local apply_settings = function(_, t, settings)
     texts.stroke_alpha(t, settings.text.stroke.alpha)
     texts.width(t, settings.box_width)
     texts.height(t, settings.box_height)
+    texts.regions(t, settings.regions)
 
     call_events(t, 'reload')
 end
@@ -510,6 +511,10 @@ function texts.height(t, height)
 
     meta[t].settings.box_height = height
     meta[t].font_object:set_box_height(height)
+end
+
+function texts.regions(t, regions)
+    meta[t].font_object:set_regions(regions)
 end
 
 function texts.size(t, size)

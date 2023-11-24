@@ -43,6 +43,7 @@ local function CreateFontData(settings)
     data.GradientColor = settings.gradient_color;
     data.FontFamily = settings.font_family;
     data.FontText = settings.text;
+    data.Regions = settings.regions or false;
     return data;
 end
 
@@ -104,6 +105,10 @@ function object:set_box_width(width)
     end
     
     self.settings.box_width = width;
+end
+
+function object:set_regions(regions)
+    self.settings.regions = regions;
 end
 
 function object:set_font_alignment(alignment)

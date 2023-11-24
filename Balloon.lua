@@ -23,15 +23,19 @@ local default_settings = require('defaults')
 local theme = require('theme')
 local theme_options = {}
 local ui = require('ui')
+local tests = require('tests')
 
 
 -- TODO
 
--- Support command args
+-- Cancel close timer on close()
+-- Move close
+-- Render color tags \cs and \cr
+
+-- TIDY UP
 
 -- Strip unused windower libs
 -- Strip any other unused code
-
 -- Strip out debug prints
 -- Tidy up error prints
 
@@ -88,18 +92,18 @@ balloon.initialize = function()
 
     -- -- TODO TIMERS
 	-- --スレッド開始 (Thread start)
-	-- if settings.MovementCloses then
+	-- if settings.move_close then
 	-- 	balloon.movement_thread = moving_check:schedule(0)
 	-- end
 
 	if theme_options ~= nil then
-        print(chat.header(addon.name):append(chat.message('Loaded Theme "%s", %s'):format(balloon.settings.Theme, balloon.lang_code)))
+        print(chat.header(addon.name):append(chat.message('Loaded Theme "%s", %s'):format(balloon.settings.theme, balloon.lang_code)))
     end
 end
 
 balloon.apply_theme = function()
     -- Load the theme
-    theme_options = theme.load(balloon.settings.Theme, balloon.lang_code)
+    theme_options = theme.load(balloon.settings.theme, balloon.lang_code)
     if theme_options == nil then
         return
     end
@@ -119,8 +123,6 @@ balloon.update_timer = function()
         ui.timer_text:text(balloon.close_timer..'')
     end
 
-    print('update_timer: ' .. balloon.close_timer)
-
     if balloon.close_timer <= 0 then
         balloon.close()
     else
@@ -130,7 +132,7 @@ end
 
 balloon.open = function(timed)
 	if timed then
-		balloon.close_timer = balloon.settings.NoPromptCloseDelay
+		balloon.close_timer = balloon.settings.no_prompt_close_delay
 		ui.timer_text:text(''..balloon.close_timer)
 	end
 
@@ -138,7 +140,7 @@ balloon.open = function(timed)
 
 	ui:show(timed)
 
-    if not balloon.waiting_to_close then
+    if timed and not balloon.waiting_to_close then
         balloon.waiting_to_close = true
         ashita.tasks.once(1, balloon.update_timer)
     end
@@ -180,8 +182,8 @@ end
 -- 		-- end
 -- 		--wait
 -- 		balloon.waiting_to_close = true
--- 		coroutine.sleep(balloon.settings.NoPromptCloseDelay)
--- 		if balloon.moving and balloon.settings.MovementCloses and balloon.waiting_to_close then
+-- 		coroutine.sleep(balloon.settings.no_prompt_close_delay)
+-- 		if balloon.moving and balloon.settings.move_close and balloon.waiting_to_close then
 -- 			close()
 -- 		end
 -- 	end
@@ -211,7 +213,7 @@ balloon.process_incoming_message = function(e)
 	-- print debug info
 	-- if S{'codes', 'all'}[balloon.debug] then print("codes: " .. codes(e.message)) end
 
-	if balloon.settings.DisplayMode >= 1 then
+	if balloon.settings.display_mode >= 1 then
 		e.message_modified = balloon.process_balloon(e.message, mode)
     end
 end
@@ -240,14 +242,14 @@ balloon.process_balloon = function(npc_text, mode)
 	end
 
 	-- mode 1, blank log lines and visible balloon
-	if balloon.settings.DisplayMode == 1 then
+	if balloon.settings.display_mode == 1 then
 		if npc_prefix == "" then
 			result = "" .. "\n"
 		else
 			result = npc_text:sub(#npc_text-1,#npc_text)
 		end
 	-- mode 2, visible log and balloon
-	elseif balloon.settings.DisplayMode == 2 then
+	elseif balloon.settings.display_mode == 2 then
 		-- pass through the original message for the log
 		result = npc_text
 	end
@@ -406,130 +408,184 @@ function split(str, delim)
     return result
 end
 
--- windower.register_event("addon command", function(command, ...)
--- 	local args = L{ ... }
+local function print_help(isError)
+    -- Print the help header..
+    if (isError) then
+        print(chat.header(addon.name):append(chat.error('Invalid command syntax for command: ')):append(chat.success('/' .. addon.name)))
+    else
+        print(chat.header(addon.name):append(chat.message('Available commands:')))
+    end
 
--- 	if command == 'help' then
--- 		local t = {}
--- 		t[#t+1] = "Balloon(Bl)" .. "Ver." .._addon.version
--- 		t[#t+1] = "  <コマンド> (<Command>)"
--- 		t[#t+1] = "     //Balloon 0  	:吹き出し非表示＆ログ表示 (Hiding balloon & displaying log)"
--- 		t[#t+1] = "     //Balloon 1  	:吹き出し表示＆ログ非表示 (Show balloon & hide log)"
--- 		t[#t+1] = "     //Balloon 2  	:吹き出し表示＆ログ表示 (Balloon display & log display)"
--- 		t[#t+1] = "     //Balloon reset :吹き出し位置初期化 (Initialize balloon position)"
--- 		t[#t+1] = "     //Balloon theme <theme> - loads the specified theme"
--- 		t[#t+1] = "     //Balloon scale <scale> - scales the size of the balloon by a decimal (eg: 1.5)"
--- 		t[#t+1] = "     //Balloon delay <seconds> - delay before closing promptless balloons"
--- 		t[#t+1] = "     //Balloon text_speed <chars> - speed that text is displayed, in characters per frame"
--- 		t[#t+1] = "     //Balloon animate - toggle the advancement prompt indicator bouncing"
--- 		t[#t+1] = "     //Balloon portrait - toggle the display of character portraits, if the theme has settings for them"
--- 		t[#t+1] = "     //Balloon move_closes - toggle balloon auto-close on player movement"
--- 		t[#t+1] = "     //Balloon debug off/all/mode/codes/chunk/process/wrap/chars/elements - enable debug modes"
--- 		t[#t+1] = "     //Balloon test <name> : <message> - display a test balloon"
--- 		t[#t+1] = "　"
--- 		for tk,tv in pairs(t) do
--- 			windower.add_to_chat(207, windower.to_shift_jis(tv))
--- 		end
+    local cmds = T{
+        { '/balloon help', 'Displays this help information.' },
+        { '/balloon 0', 'Hiding balloon & displaying log.' },
+        { '/balloon 1', 'Show balloon & hide log.' },
+        { '/balloon 2', 'Show balloon & displaying log.' },
+        { '/balloon reset', 'Reset to default settings.' },
+        { '/balloon theme <theme>', 'Loads the specified theme.' },
+        { '/balloon scale <scale>', 'Scales the size of the balloon by a decimal (eg: 1.5).' },
+        { '/balloon delay <seconds>', 'Delay before closing promptless balloons.' },
+        { '/balloon text_speed <chars>', 'Speed that text is displayed, in characters per frame.' },
+        { '/balloon animate', 'Toggle the advancement prompt indicator bouncing.' },
+        { '/balloon portrait', 'Toggle the display of character portraits, if the theme has settings for them.' },
+        { '/balloon move_closes', 'Toggle balloon auto-close on player movement.' },
+    }
 
--- 	elseif command == '1' then
--- 		settings.DisplayMode = 1
--- 		log("モード (mode) 1　　:吹き出し表示＆ログ非表示 (Show balloon & hide log)")
+    -- Print the command list..
+    cmds:ieach(function (v)
+        print(chat.header(addon.name):append(chat.error('Usage: ')):append(chat.message(v[1]):append(' - ')):append(chat.color1(6, v[2])))
+    end)
+end
 
--- 	elseif command == '0' then
--- 		settings.DisplayMode = 0
--- 		log("モード (mode) 0　　:吹き出し非表示＆ログ表示 (Hiding balloon & displaying log)")
+ashita.events.register('command', 'balloon_command_cb', function (e)
+    -- Parse the command arguments..
+    local args = e.command:args()
+    if (#args == 0 or (args[1] ~= '/bl' and args[1] ~= '/balloon')) then
+        return
+    end
 
--- 	elseif command == '2' then
--- 		settings.DisplayMode = 2
--- 		log("モード (mode) 2　　:吹き出し表示＆ログ表示 (Balloon display & log display)")
+    -- Block all related commands..
+    e.blocked = true;
 
--- 	elseif command == 'reset' then
--- 		settings.Position.X = defaults.Position.X
--- 		settings.Position.Y = defaults.Position.Y
--- 		ui:position(settings.Position.X, settings.Position.Y)
--- 		log("Balloon位置リセットしました。 (Balloon position reset.)")
+    -- Handle: /balloon help
+    if (#args == 2 and args[2]:any('help')) then
+        print_help(false)
+        return
+    end
 
--- 	elseif command == 'theme' then
--- 		if not args:empty() then
--- 			local tp = 'themes/'..args[1]..'/theme.xml'
--- 			if not windower.file_exists(addon.path..tp) then
--- 				log("theme.xml not found under %s":format(tp))
--- 				return
--- 			end
+    -- Handle: /balloon [0,1,2]
+    if (#args == 2 and args[2]:any('0', '1', '2')) then
+        balloon.settings.display_mode = tonumber(args[2])
+        print(chat.header(addon.name):append(chat.message('Display mode changed: ')):append(chat.success(tostring(balloon.settings.display_mode))))
+        settings.save()
+        return
+    end
 
--- 			local old_theme = settings.Theme
--- 			settings.Theme = args[1]
--- 			apply_theme()
--- 			log("changed theme from '%s' to '%s'":format(old_theme, settings.Theme))
--- 		else
--- 			log("current theme is '%s' (default: %s)":format(settings.Theme, defaults.Theme))
--- 		end
+    -- Handle: /balloon reset
+    if (#args == 2 and args[2]:any('reset')) then
+        settings.reset()
+        return
+    end
 
--- 	elseif command == 'scale' then
--- 		local old_scale = settings.Scale
--- 		if not args:empty() then
--- 			settings.Scale = tonumber(args[1])
--- 			ui:scale(settings.Scale)
--- 			log("scale changed from %.2f to %.2f":format(old_scale, settings.Scale))
--- 		else
--- 			log("current scale is %.2f (default: %.2f)":format(settings.Scale, defaults.Scale))
--- 		end
+    -- Handle: /balloon theme
+    if (#args >= 2 and args[2]:any('theme')) then
+        if #args > 2 then
+            local old_theme = balloon.settings.theme
+            local old_theme_options = theme_options
+            
+            balloon.settings.theme = args[3]
 
--- 	elseif command == 'delay' then
--- 		local old_delay = settings.NoPromptCloseDelay
--- 		if not args:empty() then
--- 			settings.NoPromptCloseDelay = tonumber(args[1])
--- 			log("promptless close delay changed from %d to %d":format(old_delay, settings.NoPromptCloseDelay))
--- 		else
--- 			log("current promptless close delay is %d (default: %d)":format(old_delay, defaults.NoPromptCloseDelay))
--- 		end
+            balloon.apply_theme()
+            if theme_options ~= nil then
+                print(chat.header(addon.name):append(chat.message('Theme changed: ')):append(chat.success(balloon.settings.theme)))
+            else
+                -- Restore old settings
+                theme_options = old_theme_options
+                balloon.settings.theme = old_theme
+            end
 
--- 	elseif command == 'text_speed' then
--- 		local old_speed = settings.TextSpeed
--- 		if not args:empty() then
--- 			settings.TextSpeed = tonumber(args[1])
--- 			log("text speed changed from %d to %d":format(old_speed, settings.TextSpeed))
--- 		else
--- 			log("current text speed is %d (default: %d)":format(settings.TextSpeed, defaults.TextSpeed))
--- 		end
+            settings.save()
+        else
+            print(chat.header(addon.name):append(chat.message('Theme: ')):append(chat.success(balloon.settings.theme)))
+        end
+        return
+    end
 
--- 	elseif command == 'animate' then
--- 		settings.AnimatePrompt = not settings.AnimatePrompt
--- 		ui:position()
--- 		log("animated text advance prompt - " .. (settings.AnimatePrompt and "on" or "off"))
+    -- Handle numerical options
+    -- Handle: /balloon scale
+    -- Handle: /balloon delay
+    -- Handle: /balloon speed
+    if (#args >= 2 and args[2]:any('scale', 'delay', 'speed')) then
+        local setting_key_alias = {
+            delay = 'no_prompt_close_delay',
+            speed = 'text_speed'
+        }
+        local setting_names = {
+            no_prompt_close_delay = 'Promptless close delay',
+            text_speed = 'Text speed',
+            scale = 'Scale',
+        }
+        local setting_fmts = {
+            no_prompt_close_delay = '%d',
+            text_speed = '%d',
+            scale = '%.2f',
+        }
+        local setting_key = setting_key_alias[args[2]] or args[2]
+        local setting_name = setting_names[setting_key] or args[2]
+        local setting_fmt = setting_fmts[setting_key] or args[2]
 
--- 	elseif command == 'portrait' then
--- 		settings.ShowPortraits = not settings.ShowPortraits
--- 		apply_theme()
--- 		log("portrait display - " .. (settings.ShowPortraits and "on" or "off"))
+		if #args > 2 then
+            local old_val = balloon.settings[setting_key]
+			balloon.settings[setting_key] = tonumber(args[3])
+            print(chat.header(addon.name):append(chat.message('%s changed: '):format(setting_name)):append(chat.success('from ' .. setting_fmt .. ' to ' .. setting_fmt):format(old_val, balloon.settings[setting_key])))
+            settings.save()
+		else
+			print(chat.header(addon.name):append(chat.message('%s: '):format(setting_name)):append(chat.success(setting_fmt):format(balloon.settings[setting_key])))
+		end
+        return
+    end
 
--- 	elseif command == 'move_closes' then
--- 		settings.MovementCloses = not settings.MovementCloses
--- 		if settings.MovementCloses then
--- 			balloon.movement_thread = moving_check:schedule(0)
--- 		else
--- 			if balloon.movement_thread ~= nil and coroutine.status(balloon.movement_thread) ~= 'dead' then
--- 				coroutine.close(balloon.movement_thread)
--- 			end
--- 		end
+    -- Handle toggle options
+    -- Handle: /balloon animate
+    -- Handle: /balloon portrait
+    -- Handle: /balloon move_closes
+    if (#args == 2 and args[2]:any('animate', 'portrait', 'move_closes')) then
+        local setting_key_alias = {
+            animate = 'animate_prompt',
+            portrait = 'portraits',
+            move_closes = 'move_close',
+        }
+        local setting_names = {
+            animate_prompt = 'Animated text advance prompt',
+            portraits = 'Display portraits',
+            move_close = 'Close balloons on player movement',
+        }
+        local setting_key = setting_key_alias[args[2]] or args[2]
+        local setting_name = setting_names[setting_key] or args[2]
 
--- 		log("close balloons on player movement - " .. (settings.MovementCloses and "on" or "off"))
+        if #args > 2 then
+            local old_val = balloon.settings[setting_key]
+			balloon.settings[setting_key] = not balloon.settings[setting_key]
 
--- 	elseif command == 'debug' then
--- 		if not args:empty() then
--- 			balloon.debug = args[1]
--- 		else
--- 			balloon.debug = (balloon.debug == 'off' and 'all' or 'off')
--- 		end
--- 		log("set debug mode " .. balloon.debug)
+            -- Some additional logic we need to run depending on the setting change
+            if setting_key == 'animate_prompt' then
+                ui:position()
+            elseif setting_key == 'portraits' then
+                balloon.apply_theme()
+            end
 
--- 	elseif command == 'test' then
--- 		process_balloon(args:concat(' '), 150)
+            print(chat.header(addon.name):append(chat.message('%s changed: '):format(setting_name)):append(chat.success(balloon.settings[setting_key] and 'on' or 'off')))
+            settings.save()
+		else
+			print(chat.header(addon.name):append(chat.message('%s: '):format(setting_name)):append(chat.success(balloon.settings[setting_key] and 'on' or 'off')))
+		end
+        return
+    end
 
--- 	end
+    -- Handle: /balloon test
+    if (#args >= 3 and args[2]:any('test')) then
+        local test_name = args[3]
+        local lang = args[4] or balloon.lang_code
+        local lang_map = {
+            en = 1,
+            ja = 2,
+        }
+        local lang_index = lang_map[lang] or 1
 
--- 	config.save(settings)
--- end)
+        local test_entry = tests[test_name]
+        if test_entry == nil then
+            print(chat.header(addon.name):append(chat.error('Invalid test: %s'):format(test_name)))
+            return
+        end
+
+        local message = test_entry[lang_index]
+        balloon.process_balloon('Test ' .. test_name .. ' : ' .. message, MODE.MESSAGE)
+        return
+    end
+
+    -- Unhandled: Print help information..
+    print_help(true)
+end)
 
 ashita.events.register('load', 'balloon_load', function()
     balloon.settings = settings.load(default_settings)
@@ -548,6 +604,7 @@ ashita.events.register('load', 'balloon_load', function()
 end)
 
 ashita.events.register('unload', 'balloon_unload', function ()
+    print("balloon.unload")
     ui:destroy()
 end)
 
@@ -588,10 +645,10 @@ ashita.events.register('d3d_present', 'balloon_d3d_present', function ()
 	if balloon.frame_count > 60*math.pi*2 then balloon.frame_count = balloon.frame_count - 60*math.pi*2 end
 
 	if balloon.on then
-		if balloon.settings.AnimatePrompt then
+		if balloon.settings.animate_prompt then
 			ui:animate_prompt(balloon.frame_count)
 		end
-		ui:animate_text_display(balloon.settings.TextSpeed)
+		ui:animate_text_display(balloon.settings.text_speed)
 	end
 
     if not ui:hidden() then
