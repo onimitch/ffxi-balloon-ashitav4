@@ -31,6 +31,7 @@ local tests = require('tests')
 -- Cancel close timer on close()
 -- Move close
 -- Render color tags \cs and \cr
+-- Can we do animated text via clipping of font texture?
 
 -- TIDY UP
 
@@ -195,11 +196,11 @@ balloon.process_incoming_message = function(e)
     local mode = bit.band(e.mode_modified,  0x000000FF);
 
 	-- print debug info
-	if S{'codes', 'mode', 'all'}[balloon.debug] then print("Mode: " .. mode .. " Text: " .. e.message) end
+	if S{'mode', 'all'}[balloon.debug] then print("Mode: " .. mode .. " Text: " .. e.message) end
 
 	-- skip text modes that aren't NPC speech
     if not S{MODE.MESSAGE, MODE.SYSTEM, MODE.TIMED_BATTLE, MODE.TIMED_MESSAGE}[mode] then 
-        if S{'codes', 'all'}[balloon.debug] then print(("Not accepted mode: %d"):format(mode)) end
+        if S{'all'}[balloon.debug] then print(("Not accepted mode: %d"):format(mode)) end
         return 
     end
 
@@ -232,9 +233,11 @@ balloon.process_balloon = function(npc_text, mode)
 	local start,_end = npc_text:find(".- : ")
 	local npc_prefix = ""
 	if start ~= nil then
-		if _end < 32 and start > 0 then npc_prefix = npc_text:sub(start,_end) end
+		if _end < 32 and start > 0 then 
+            npc_prefix = npc_text:sub(start, _end) 
+        end
 	end
-	local npc_name = npc_prefix:sub(0,#npc_prefix-2)
+	local npc_name = npc_prefix:sub(0, #npc_prefix-2)
 	npc_name = string.trimex(npc_name)
 
 	if not ui:set_character(npc_name) then
@@ -246,7 +249,7 @@ balloon.process_balloon = function(npc_text, mode)
 		if npc_prefix == "" then
 			result = "" .. "\n"
 		else
-			result = npc_text:sub(#npc_text-1,#npc_text)
+			result = npc_text:sub(#npc_text-1, #npc_text)
 		end
 	-- mode 2, visible log and balloon
 	elseif balloon.settings.display_mode == 2 then
@@ -255,6 +258,7 @@ balloon.process_balloon = function(npc_text, mode)
 	end
 
     if S{'chars', 'all'}[balloon.debug] then print("npc_text: " .. npc_text) end
+    if S{'codes', 'all'}[balloon.debug] then print("codes before: " .. codes(npc_text:sub(-4))) end
 
 	-- 発言 (Remark)
 	local mes = SubCharactersPreShift(npc_text)
@@ -272,7 +276,7 @@ balloon.process_balloon = function(npc_text, mode)
 	end
 
 	if S{'process', 'all'}[balloon.debug] then print("Pre-process: " .. mes) end
-	if S{'codes', 'all'}[balloon.debug] then print("codes: " .. codes(mes)) end
+	if S{'codes', 'all'}[balloon.debug] then print("codes after: " .. codes(mes:sub(-4))) end
 
 	--strip the default color code from the start of messages,
 	--it causes the first part of the message to get cut off somehow
@@ -286,6 +290,12 @@ balloon.process_balloon = function(npc_text, mode)
 
 	local message = ""
 	for k,v in ipairs(message_lines) do
+        -- Strip out everything after and including prompt character
+        local prompt_pos, _ = v:find(PROMPT_CHARS, 1, true)
+        if prompt_pos ~= nil then
+            v = v:sub(1, prompt_pos - 1)
+        end
+
 		v = string.gsub(v, string.char(0x1E,0x01), "[BL_c1]") --color code 1 (black/reset)
 		v = string.gsub(v, string.char(0x1E,0x02), "[BL_c2]") --color code 2 (green/regular items)
 		v = string.gsub(v, string.char(0x1E,0x03), "[BL_c3]") --color code 3 (blue/key items)
@@ -295,27 +305,10 @@ balloon.process_balloon = function(npc_text, mode)
 		v = string.gsub(v, string.char(0x1E,0x07), "[BL_c7]") --color code 7 (yellow/???)
 		v = string.gsub(v, string.char(0x1E,0x08), "[BL_c8]") --color code 8 (orange/RoE objectives?)
 		v = string.gsub(v, string.char(0x1F,0x0F), "") --cutscene emote color code (handled by the message type instead)
-		v = string.gsub(v, PROMPT_CHARS, "")
-		-- these are the auto-prompt characters
-		v = string.gsub(v, string.char(0x7F,0x34), "")
-		v = string.gsub(v, string.char(0x7F,0x35), "")
-		v = string.gsub(v, string.char(0x7F,0x36), "")
-		-- these are often the timings for the auto-prompt
-		v = string.gsub(v, string.char(0x01), "")
-		v = string.gsub(v, string.char(0x02), "")
-		v = string.gsub(v, string.char(0x03), "")
-		v = string.gsub(v, string.char(0x04), "")
-		v = string.gsub(v, string.char(0x05), "")
-		v = string.gsub(v, string.char(0x06), "")
+        
 		v = string.gsub(v, "^?([%w%.'(<“])", "%1")
 		v = string.gsub(v, '(%w)(%.%.%.+)([%w“])', "%1%2 %3") --add a space after elipses to allow better line splitting
 		v = string.gsub(v, '([%w”])%-%-([%w%p])', "%1-- %2") --same for double dashes
-
-        -- Disabled manually wrapping in favour of automatic wrapping of text via GDI font rendering
-		-- v = ui:wrap_text(v)
-
-        -- Disabled: This is causing empty spaces at start of lines??
-		-- v = " " .. v
 
 		v = string.gsub(v, "%[BL_c1]", "\\cr")
 		v = string.gsub(v, "%[BL_c2]", "\\cs("..ui._type.items..")")
@@ -334,8 +327,11 @@ balloon.process_balloon = function(npc_text, mode)
 		v = string.gsub(v, "%[BL_Water]", "\\cs(0,76,153)Water \\cr")
 		v = string.gsub(v, "%[BL_Light]", "\\cs(224,224,224)Light \\cr")
 		v = string.gsub(v, "%[BL_Dark]", "\\cs(82,82,82)Dark \\cr")
+
 		message = message .. string.format('\n%s', v)
 	end
+
+    if S{'codes', 'all'}[balloon.debug] then print("codes end: " .. codes(message:sub(-4))) end
 	if S{'process', 'all'}[balloon.debug] then print("Final: " .. message) end
 
 	ui:set_message(message:trimex())
@@ -347,7 +343,7 @@ end
 -- parses a string into char[hex bytecode]
 function codes(str)
 	return (str:gsub('.', function (c)
-		return string.format('%s[%02X]', c, string.byte(c))
+		return string.format('[%02X]', string.byte(c))
 	end))
 end
 

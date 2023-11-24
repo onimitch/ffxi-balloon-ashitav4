@@ -439,7 +439,9 @@ function ui:animate_prompt(frame_count)
 end
 
 function ui:animate_text_display(chars_per_frame)
-    if self._chars_shown >= #self._current_text then return end
+    if self._chars_shown >= #self._current_text then 
+        return 
+    end
 
     self._chars_shown = self._chars_shown + (chars_per_frame == 0 and 1000 or chars_per_frame)
     self.message_text:text(self._current_text:sub(0,self._chars_shown))
