@@ -1,3 +1,4 @@
+-- Ashitav4 port of Windower lua libs by onimitch
 --[[
     Adds some tools for functional programming. Amends various other namespaces by functions used in a functional context, when they don't make sense on their own.
 ]]

@@ -1,16 +1,17 @@
+-- Ashitav4 port of Windower lua libs by onimitch
 --[[
 Small implementation of a JSON file reader.
 ]]
 
 _libs = _libs or {}
 
-require('libs.tables')
-require('libs.lists')
-require('libs.sets')
-require('libs.strings')
+require('wlibs.tables')
+require('wlibs.lists')
+require('wlibs.sets')
+require('wlibs.strings')
 
 local table, list, set, string = _libs.tables, _libs.lists, _libs.sets, _libs.strings
-local files = require('libs.files')
+local files = require('wlibs.files')
 
 local json = {}
 

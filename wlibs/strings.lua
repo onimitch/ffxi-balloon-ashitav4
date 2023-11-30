@@ -1,11 +1,12 @@
+-- Ashitav4 port of Windower lua libs by onimitch
 --[[
     A few string helper functions.
 ]]
 
 _libs = _libs or {}
 
-require('libs.functions')
-require('libs.maths')
+require('wlibs.functions')
+-- require('wlibs.maths')
 
 local functions, math = _libs.functions, _libs.maths
 local table = require('table')

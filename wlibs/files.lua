@@ -1,11 +1,12 @@
+-- Ashitav4 port of Windower lua libs by onimitch
 --[[
 File handler.
 ]]
 
 _libs = _libs or {}
 
-require('libs.strings')
-require('libs.tables')
+require('wlibs.strings')
+require('wlibs.tables')
 
 local string, table = _libs.strings, _libs.tables
 

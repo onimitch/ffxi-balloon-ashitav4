@@ -1,3 +1,4 @@
+-- Ashitav4 port of Windower lua libs by onimitch
 --[[
     A library to facilitate image primitive creation and manipulation.
 ]]

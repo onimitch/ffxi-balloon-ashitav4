@@ -1,3 +1,4 @@
+-- Ashitav4 port of Windower lua libs by onimitch
 --[[
     A library to facilitate text primitive creation and manipulation.
 ]]
@@ -6,6 +7,7 @@ local table = require('table')
 local math = require('math')
 
 local gdi = require('gdifonts.include')
+local encoding = require('gdifonts.encoding')
 local d3d = require('d3d8')
 
 local texts = {}
@@ -93,7 +95,7 @@ math.randomseed(os.clock())
 local gdi_font_size_modifier = 1.5
 
 -- Keep track of fonts we've found are unavailable
-local unavailable_fonts = S{}
+local unavailable_fonts = {}
 
 local amend
 amend = function(settings, defaults)
@@ -140,7 +142,7 @@ local apply_settings = function(_, t, settings)
     texts.stroke_alpha(t, settings.text.stroke.alpha)
     texts.width(t, settings.box_width)
     texts.height(t, settings.box_height)
-    texts.regions(t, settings.regions)
+    -- texts.regions(t, settings.regions)
 
     call_events(t, 'reload')
 end
@@ -280,6 +282,60 @@ function texts.font_object(t)
     return meta[t].font_object
 end
 
+local function count_utf8_chars(str)
+    return utf8.len(str)
+end
+
+local function parse_regions(str)
+    local a = 1
+    local b
+    local regions = nil
+
+    while a do
+        a, b = str:find('\\cs%([%d,]+%)', a)
+        if a then
+            local tag = str:sub(a, b)
+            local region_attr = str:match('[%d]+,[%d]+,[%d]+')
+            local range_start = a
+            
+            -- Strip out the tag
+            local before = str:sub(1, a-1)
+            local after = str:sub(b+1)
+            str = before .. after
+            
+            local range_start_u = count_utf8_chars(before) + 1
+            
+            -- Find the closing tag
+            a, b = str:find('\\cr', a)
+            if a then
+                local range_end = a - 1
+                
+                -- Strip out the tag
+                local before = str:sub(1, a-1)
+                local after = str:sub(b+1)
+                str = before .. after
+                
+                local range_end_u = count_utf8_chars(before)
+
+                regions = regions or {}
+                if regions[region_attr] == nil then
+                    regions[region_attr] = {}
+                end
+                
+                local range = { 
+                    start = range_start, 
+                    length = range_end - range_start + 1,
+                    start_u = range_start_u,
+                    length_u = range_end_u - range_start_u + 1,
+                }
+                table.insert(regions[region_attr], range)
+            end
+        end
+    end
+
+    return str, regions
+end
+
 -- Sets string values based on the provided attributes.
 function texts.update(t, attr)
     attr = attr or {}
@@ -301,8 +357,13 @@ function texts.update(t, attr)
         str = str .. m.texts[key]
     end
 
+    -- Parse regions
+    local regions = {}
+    str, regions = parse_regions(str)
+
     -- windower.text.set_text(m.name, str)
     m.font_object:set_text(str)
+    m.font_object:set_regions(regions)
     m.status.text.content = str
 
     return str
@@ -486,7 +547,7 @@ function texts.font(t, ...)
             available_font = font_name
             break
         elseif not unavailable_fonts[font_name] then
-            unavailable_fonts:add(font_name)
+            unavailable_fonts[font_name] = true
             print('Font not found: ' .. font_name)
         end
     end
@@ -513,9 +574,9 @@ function texts.height(t, height)
     meta[t].font_object:set_box_height(height)
 end
 
-function texts.regions(t, regions)
-    meta[t].font_object:set_regions(regions)
-end
+-- function texts.regions(t, regions)
+--     meta[t].font_object:set_regions(regions)
+-- end
 
 function texts.size(t, size)
     if not size then

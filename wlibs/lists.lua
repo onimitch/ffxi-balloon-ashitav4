@@ -1,10 +1,11 @@
+-- Ashitav4 port of Windower lua libs by onimitch
 --[[
     A library providing advanced list support and better optimizations for list-based operations.
 ]]
 
 _libs = _libs or {}
 
-require('libs.tables')
+require('wlibs.tables')
 
 local table = _libs.tables
 

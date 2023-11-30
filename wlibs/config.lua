@@ -1,18 +1,19 @@
+-- Ashitav4 port of Windower lua libs by onimitch
 --[[
     Functions that facilitate loading, parsing, manipulating and storing of config files.
 ]]
 
 _libs = _libs or {}
 
-require('libs.tables')
-require('libs.sets')
-require('libs.lists')
-require('libs.strings')
+require('wlibs.tables')
+require('wlibs.sets')
+require('wlibs.lists')
+require('wlibs.strings')
 
 local table, set, list, string = _libs.tables, _libs.sets, _libs.lists, _libs.strings
-local xml = require('libs.xml')
-local files = require('libs.files')
-local json = require('libs.json')
+local xml = require('wlibs.xml')
+local files = require('wlibs.files')
+local json = require('wlibs.json')
 
 local config = {}
 

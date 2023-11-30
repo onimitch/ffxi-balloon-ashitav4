@@ -2,15 +2,14 @@
 <settings>
     <global>
         <NpcName>
-            <FontEnglish>Libre Franklin Medium</FontEnglish>
-            <FontJapanese>Meiryo</FontJapanese>
-            <Size>13</Size>
+            <Font>Libre Franklin Medium, Libre Franklin Regular, Libre Franklin</Font>
+            <Size>12</Size>
             <Width>200</Width>
             <Height>2</Height>
             <OffsetX>8</OffsetX>
             <OffsetY>-1</OffsetY>
             <TextOffsetX>2</TextOffsetX>
-            <TextOffsetY>-28</TextOffsetY>
+            <TextOffsetY>-23</TextOffsetY>
             <Color>
                 <Alpha>255</Alpha>
                 <Blue>255</Blue>
@@ -26,14 +25,15 @@
             </Stroke>
         </NpcName>
         <Message>
-            <FontEnglish>Libre Franklin Medium</FontEnglish>
+            <FontEnglish>Libre Franklin Medium, Libre Franklin Regular, Libre Franklin</FontEnglish>
             <FontJapanese>Meiryo</FontJapanese>
-            <Size>13</Size>
+            <Size>12</Size>
             <MaxLength>75</MaxLength>
-            <Width>800</Width>
+            <Width>750</Width>
             <Height>150</Height>
-            <TextOffsetX>50</TextOffsetX>
-            <TextOffsetY>-18</TextOffsetY>
+            <TextOffsetX>30</TextOffsetX>
+            <TextOffsetY>5</TextOffsetY>
+            <TextMarginRight>30</TextMarginRight>
             <Dialogue>
                 <Color>
                     <Alpha>255</Alpha>

@@ -2,14 +2,13 @@
 <settings>
     <global>
         <NpcName>
-            <FontEnglish>DePixel</FontEnglish>
-            <FontJapanese>Meiryo</FontJapanese>
-            <Size>9</Size>
+            <Font>DotGothic16, DePixel</Font>
+            <Size>12</Size>
             <Width>254</Width>
             <Height>43</Height>
             <OffsetX>15</OffsetX>
             <OffsetY>-30</OffsetY>
-            <TextOffsetX>25</TextOffsetX>
+            <TextOffsetX>20</TextOffsetX>
             <TextOffsetY>-24</TextOffsetY>
             <Color>
                 <Alpha>255</Alpha>
@@ -26,14 +25,15 @@
             </Stroke>
         </NpcName>
         <Message>
-            <FontEnglish>DePixel</FontEnglish>
-            <FontJapanese>Meiryo</FontJapanese>
-            <Size>8</Size>
+            <FontEnglish>DotGothic16, DePixel</FontEnglish>
+            <FontJapanese>DotGothic16</FontJapanese>
+            <Size>12</Size>
             <MaxLength>75</MaxLength>
             <Width>660</Width>
             <Height>142</Height>
-            <TextOffsetX>22</TextOffsetX>
-            <TextOffsetY>-5</TextOffsetY>
+            <TextOffsetX>20</TextOffsetX>
+            <TextOffsetY>15</TextOffsetY>
+            <TextMarginRight>20</TextMarginRight>
             <Dialogue>
                 <Color>
                     <Alpha>255</Alpha>

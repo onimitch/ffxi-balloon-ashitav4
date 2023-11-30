@@ -6,23 +6,28 @@ local d3d8dev = d3d.get_device()
 local gdi = require('gdifonts.include')
 local encoding = require('gdifonts.encoding')
 
+local PI2 = math.pi*2
+local d3dwhite = d3d.D3DCOLOR_ARGB(255, 255, 255, 255)
+
 local ui = {}
 
-ui.message_background = images.new()
-ui.portrait_background = images.new()
-ui.portrait = images.new()
-ui.portrait_frame = images.new()
-ui.name_background = images.new()
-ui.prompt = images.new()
+ui.message_background = nil
+ui.portrait_background = nil
+ui.portrait = nil
+ui.portrait_frame = nil
+ui.name_background = nil
+ui.prompt = nil
 
-ui.message_text = texts.new()
-ui.name_text = texts.new()
-ui.timer_text = texts.new()
+ui.message_text = nil
+ui.name_text = nil
+ui.timer_text = nil
 
 ui._hidden = true
 ui._current_text = ''
 ui._chars_shown = 0
+ui._text_speed = 0
 ui._has_portrait = false
+ui._prompt_anim_time = 0
 
 ui._dialogue_settings = {}
 ui._system_settings = {}
@@ -30,7 +35,7 @@ ui._type = {}
 
 ui._theme = 'default'
 ui._scale = 1.0
-ui._global_show_portraits = true
+ui._show_portraits = true
 ui._theme_options = nil
 
 ui._sprite = nil
@@ -59,6 +64,9 @@ local function setup_text(text, text_options)
 end
 
 local function setup_sprite()
+    if ui._sprite ~= nil then
+        return
+    end
     local sprite_ptr = ffi.new('ID3DXSprite*[1]');
     if (C.D3DXCreateSprite(d3d8dev, sprite_ptr) ~= C.S_OK) then
         error('failed to make sprite obj');
@@ -69,8 +77,9 @@ end
 function ui:load(settings, theme_options)
     self._theme = settings.theme
     self._scale = settings.scale
-    self._global_show_portraits = settings.portraits
+    self._show_portraits = settings.portraits
     self._theme_options = theme_options
+    self._text_speed = settings.text_speed
 
     self._dialogue_settings.path = theme_options.balloon_background
     self._dialogue_settings.color = {}
@@ -112,6 +121,14 @@ function ui:load(settings, theme_options)
 
     setup_sprite()
 
+    -- Create images
+    self.message_background = images.new()
+    self.portrait_background = images.new()
+    self.portrait = images.new()
+    self.portrait_frame = images.new()
+    self.name_background = images.new()
+    self.prompt = images.new()
+
     setup_image(self.message_background, self._type.path)
     if theme_options.portrait then
         setup_image(self.portrait_background, theme_options.portrait_background)
@@ -123,12 +140,17 @@ function ui:load(settings, theme_options)
         setup_image(self.prompt, theme_options.prompt_image)
     end
 
+    -- Create text
+    self.message_text = texts.new()
+    self.name_text = texts.new()
+    self.timer_text = texts.new()
+
     setup_text(self.message_text, theme_options.message)
-    self.message_text:regions(true)
     setup_text(self.name_text, theme_options.name)
     if theme_options.timer then
         setup_text(self.timer_text, theme_options.timer)
     end
+
 
     self:position(settings.position.x, settings.position.y)
 
@@ -179,9 +201,13 @@ function ui:destroy()
     end
 end
 
-function ui:scale(scale)
+function ui:scale(scale, position)
     self._scale = scale
-    self:position()
+    self:position(position.x, position.y)
+end
+
+function ui:text_speed(speed)
+    self._text_speed = speed
 end
 
 function ui:position(x_pos, y_pos)
@@ -341,7 +367,7 @@ function ui:set_character(name)
         s = true
     end
 
-    if self._global_show_portraits and self._theme_options.portrait then
+    if self._show_portraits and self._theme_options.portrait then
         local theme_portrait = (addon.path..'/themes/'..self._theme..'/portraits/%s.png'):format(name)
         local theme_portrait_s = (addon.path..'/themes/'..self._theme..'/portraits/%s (S).png'):format(name)
         local portrait = (addon.path..'/portraits/%s.png'):format(name)
@@ -417,7 +443,12 @@ end
 function ui:set_message(message)
     self._current_text = message
     self._chars_shown = 0
-    self.message_text:text('')
+
+    if self._text_speed <= 0 then
+        self.message_text:text(message)
+    else
+        self.message_text:text('')
+    end
 
     -- this is here to update the layout depending if there's a portrait or not
     self:position()
@@ -425,34 +456,39 @@ end
 
 local function smooth_sawtooth(time, frequency)
 	local x = time * frequency
-	return(-math.sin(x-math.sin(x)/2))
+	return -math.sin(x - math.sin(x) / 2)
 end
 
-function ui:animate_prompt(frame_count)
+function ui:animate_prompt(delta_time)
     if not self._theme_options.prompt then return end
 
+    local prompt_time = self._prompt_anim_time
+    prompt_time = prompt_time + delta_time
+    if prompt_time > PI2 then
+        prompt_time = prompt_time - PI2
+    end
+    self._prompt_anim_time = prompt_time
+
     local amplitude = 2.5
-	local bounceOffset = smooth_sawtooth(frame_count/60, 6) * amplitude
+	local bounceOffset = smooth_sawtooth(prompt_time, 6) * amplitude
 
 	local pos_y = self.message_background:pos_y() + (self._theme_options.prompt.offset_y + bounceOffset) * self._scale
 	self.prompt:pos_y(pos_y)
 end
 
-function ui:animate_text_display(chars_per_frame)
-    if self._chars_shown >= #self._current_text then 
+function ui:animate_text_display(char_count)
+    local text_length = #self._current_text
+    if self._chars_shown >= text_length then 
         return 
     end
 
-    self._chars_shown = self._chars_shown + (chars_per_frame == 0 and 1000 or chars_per_frame)
+    self._chars_shown = math.min(text_length, self._chars_shown + char_count)
     self.message_text:text(self._current_text:sub(0,self._chars_shown))
 end
 
 function ui:hidden()
     return self._hidden
 end
-
-local debug_render = false
-local d3dwhite = d3d.D3DCOLOR_ARGB(255, 255, 255, 255)
 
 local function render_image(sprite, image)
     if not image:visible() then
@@ -475,10 +511,6 @@ local function render_image(sprite, image)
 
     local red, green, blue = image:color()
     local color = d3d.D3DCOLOR_ARGB(image:alpha(), red, green, blue)
-
-    if debug_render then
-        print(('ui render image: %s, x%d y%d (%d, %d), a%d'):format(image:path(), image:pos_x(), image:pos_y(), image:width(), image:height(), image:alpha()))
-    end
 
     sprite:Draw(image:texture().ptr, rect, vec_scale, nil, 0.0, vec_position, color)
 end
@@ -508,27 +540,28 @@ local function render_text(sprite, text)
     end
 end
 
-function ui:render()
-    if (ui._sprite == nil) then return end
+function ui:render(delta_time)
+    if (self._sprite == nil) then return end
 
-    local sprite = ui._sprite
+    self:animate_prompt(delta_time)
+    self:animate_text_display(math.ceil(self._text_speed * delta_time))
+
+    local sprite = self._sprite
 
     sprite:Begin()
 
-    render_image(sprite, ui.message_background)
-    render_image(sprite, ui.portrait_background)
-    render_image(sprite, ui.portrait)
-    render_image(sprite, ui.portrait_frame)
-    render_image(sprite, ui.name_background)
-    render_image(sprite, ui.prompt)
+    render_image(sprite, self.message_background)
+    render_image(sprite, self.portrait_background)
+    render_image(sprite, self.portrait)
+    render_image(sprite, self.portrait_frame)
+    render_image(sprite, self.name_background)
+    render_image(sprite, self.prompt)
 
-    render_text(sprite, ui.message_text)
-    render_text(sprite, ui.name_text)
-    render_text(sprite, ui.timer_text)
+    render_text(sprite, self.message_text)
+    render_text(sprite, self.name_text)
+    render_text(sprite, self.timer_text)
 
     sprite:End()
-
-    debug_render = false
 end
 
 return ui

@@ -26,8 +26,8 @@
         </NpcName>
         <Message>
             <FontEnglish>Segoe UI, Calibri, Cambria</FontEnglish>
-            <FontJapanese>Noto Sans JP, Meiryo</FontJapanese>
-            <Size>13</Size>
+            <FontJapanese>Meiryo</FontJapanese>
+            <Size>11</Size>
             <MaxLength>81</MaxLength>
             <Width>647</Width>
             <Height>127</Height>
@@ -75,11 +75,11 @@
                 <Red>255</Red>
             </Color>
             <Stroke>
-                <Alpha>150</Alpha>
+                <Alpha>200</Alpha>
                 <Blue>0</Blue>
                 <Green>0</Green>
                 <Red>0</Red>
-                <Width>1.5</Width>
+                <Width>2</Width>
             </Stroke>
         </Timer>
         <Portrait>

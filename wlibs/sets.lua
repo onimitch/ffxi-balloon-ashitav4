@@ -1,11 +1,12 @@
+-- Ashitav4 port of Windower lua libs by onimitch
 --[[
 A library providing sets as a data structure.
 ]]
 
 _libs = _libs or {}
 
-require('libs.tables')
-require('libs.functions')
+require('wlibs.tables')
+require('wlibs.functions')
 
 local table, functions = _libs.tables, _libs.functions
 

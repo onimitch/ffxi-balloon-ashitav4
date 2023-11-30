@@ -1,3 +1,4 @@
+-- Ashitav4 port of Windower lua libs by onimitch
 --[[
     A few table helper functions, in addition to a new T-table interface, which enables method indexing on tables.
 
@@ -8,8 +9,8 @@
 
 _libs = _libs or {}
 
--- require('libs.maths')
--- require('libs.functions')
+-- require('wlibs.maths')
+-- require('wlibs.functions')
 
 -- local math, functions = _libs.maths, _libs.functions
 

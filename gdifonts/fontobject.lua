@@ -11,12 +11,13 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 
 local d3d = require('d3d8');
 local ffi = require('ffi');
+
 local default_settings = {
     box_height = 0,
     box_width = 0,
     font_alignment = 0,
     font_color = 0xFFFFFFFF,
-    font_family = 'Grammara',
+    font_family = 'Arial',
     font_flags = 0,
     font_height = 18,
     gradient_color = 0x00000000,
@@ -31,20 +32,58 @@ local default_settings = {
 };
 
 local function CreateFontData(settings)
-    local data = ffi.new('GdiFontData_t');
-    data.BoxHeight = settings.box_height;
-    data.BoxWidth = settings.box_width;
-    data.FontHeight = settings.font_height;
-    data.OutlineWidth = settings.outline_width;
-    data.FontFlags = settings.font_flags;
-    data.FontColor = settings.font_color;
-    data.OutlineColor = settings.outline_color;
-    data.GradientStyle = settings.gradient_style;
-    data.GradientColor = settings.gradient_color;
-    data.FontFamily = settings.font_family;
-    data.FontText = settings.text;
-    data.Regions = settings.regions or false;
-    return data;
+    local container = {};
+    local region_count = 0;
+    local regions = nil;
+    local ranges = {};
+
+    if(settings.regions ~= nil and type(settings.regions) == 'table') then
+        region_count = table.length(settings.regions);
+
+        regions = ffi.new('GdiRegion_t[?]', region_count);
+        local i = 0;
+        for k, r in pairs(settings.regions) do
+            -- Parse font color from key
+            local colors = k:split(',');
+            regions[i].FontColor = d3d.D3DCOLOR_ARGB(255, colors[1], colors[2], colors[3]);
+            -- For now we just use same outline color
+            regions[i].OutlineColor = settings.outline_color;
+
+            local ranges_arr = ffi.new('GdiCharRange_t[?]', #r);
+            for j, range in ipairs(r) do
+                ranges_arr[j-1] = { range.start_u-1, range.length_u };
+            end
+            regions[i].Ranges = ranges_arr;
+            regions[i].RangesLength = #r;
+            
+            i = i + 1;
+
+            -- Make sure we keep the cdata referenced in lua so data is collected by GC
+            table.insert(ranges, ranges_arr);
+        end
+    end
+
+    -- Make sure we keep the cdata referenced in lua so data is collected by GC
+    container.cdata_regions = regions;
+    container.cdata_ranges = ranges;
+
+    container.data = ffi.new('GdiFontData_t', {
+        BoxHeight = settings.box_height,
+        BoxWidth = settings.box_width,
+        FontHeight = settings.font_height,
+        OutlineWidth = settings.outline_width,
+        FontFlags = settings.font_flags,
+        FontColor = settings.font_color,
+        OutlineColor = settings.outline_color,
+        GradientStyle = settings.gradient_style,
+        GradientColor = settings.gradient_color,
+        FontFamily = settings.font_family,
+        FontText = settings.text,
+        Regions = container.cdata_regions,
+        RegionsLength = region_count,
+    });
+
+    return container;
 end
 
 local object = {};
@@ -62,7 +101,8 @@ function object:get_texture()
         if (self.settings.text == '') then
             return;
         end
-        local tx = self.renderer.CreateTexture(self.interface, CreateFontData(self.settings));
+        local fd = CreateFontData(self.settings);
+        local tx = self.renderer.CreateTexture(self.interface, fd.data);
         if (tx.Texture == nil) or (tx.Width == 0) or (tx.Height == 0) then
             return;
         else
@@ -108,6 +148,7 @@ function object:set_box_width(width)
 end
 
 function object:set_regions(regions)
+    self.is_dirty = true;
     self.settings.regions = regions;
 end
 

@@ -19,6 +19,19 @@ local ffi        = require('ffi');
 local fontobject = dofile(string.gsub(libPath, 'include.lua', 'fontobject.lua'));
 local renderer   = ffi.load(string.gsub(libPath, 'include.lua', 'gdifonttexture.dll'));
 ffi.cdef[[
+    typedef struct
+    {
+        int32_t Start;
+        int32_t Length;
+    } GdiCharRange_t;
+
+    typedef struct {
+        uint32_t FontColor;
+        uint32_t OutlineColor;
+        GdiCharRange_t* Ranges;
+        int32_t RangesLength;
+    } GdiRegion_t;
+
     typedef struct {
         int32_t  BoxHeight;
         int32_t  BoxWidth;
@@ -29,9 +42,10 @@ ffi.cdef[[
         uint32_t OutlineColor;
         uint32_t GradientStyle;
         uint32_t GradientColor;
-        char     FontFamily[256];
-        char     FontText[4096];
-        bool     Regions;
+        const char* FontFamily;
+        const char* FontText;
+        GdiRegion_t* Regions;
+        int32_t RegionsLength;
     } GdiFontData_t;
 
     typedef struct {

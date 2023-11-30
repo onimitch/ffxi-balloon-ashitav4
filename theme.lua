@@ -1,4 +1,4 @@
-local config = require('libs.config')
+local config = require('wlibs.config')
 
 local theme = {}
 
