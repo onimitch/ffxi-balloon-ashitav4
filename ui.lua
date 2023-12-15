@@ -515,31 +515,6 @@ local function render_image(sprite, image)
     sprite:Draw(image:texture().ptr, rect, vec_scale, nil, 0.0, vec_position, color)
 end
 
-local function render_text(sprite, text)
-    local obj = text:font_object()
-
-    if (obj.settings.visible) then
-        local texture, rect = obj:get_texture()
-        if (texture ~= nil) then
-            local vec_position = ui._vec_position
-            local vec_scale = ui._vec_scale
-            vec_scale.x = 1
-            vec_scale.y = 1
-
-            if (obj.settings.font_alignment == gdi.Alignment.Center) then
-                vec_position.x = obj.settings.position_x - (rect.right / 2)
-            elseif (obj.settings.font_alignment == gdi.Alignment.Right) then
-                vec_position.x = obj.settings.position_x - rect.right
-            else
-                vec_position.x = obj.settings.position_x
-            end
-            vec_position.y = obj.settings.position_y
-
-            sprite:Draw(texture, rect, vec_scale, nil, 0.0, vec_position, d3dwhite)
-        end
-    end
-end
-
 function ui:render(delta_time)
     if (self._sprite == nil) then return end
 
@@ -557,9 +532,9 @@ function ui:render(delta_time)
     render_image(sprite, self.name_background)
     render_image(sprite, self.prompt)
 
-    render_text(sprite, self.message_text)
-    render_text(sprite, self.name_text)
-    render_text(sprite, self.timer_text)
+    self.message_text:font_object():render(sprite)
+    self.name_text:font_object():render(sprite)
+    self.timer_text:font_object():render(sprite)
 
     sprite:End()
 end

@@ -1,0 +1,3 @@
+[submodule "gdifonts"]
+	path = gdifonts
+	url = git@github.com:onimitch/gdifonts.git
