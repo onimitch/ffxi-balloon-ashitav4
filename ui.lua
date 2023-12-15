@@ -478,8 +478,8 @@ end
 
 function ui:animate_text_display(char_count)
     local text_length = #self._current_text
-    if self._chars_shown >= text_length then 
-        return 
+    if self._chars_shown >= text_length then
+        return
     end
 
     self._chars_shown = math.min(text_length, self._chars_shown + char_count)
@@ -532,9 +532,9 @@ function ui:render(delta_time)
     render_image(sprite, self.name_background)
     render_image(sprite, self.prompt)
 
-    self.message_text:font_object():render(sprite)
-    self.name_text:font_object():render(sprite)
-    self.timer_text:font_object():render(sprite)
+    self.message_text:render(sprite)
+    self.name_text:render(sprite)
+    self.timer_text:render(sprite)
 
     sprite:End()
 end

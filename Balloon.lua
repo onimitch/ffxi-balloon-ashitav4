@@ -163,9 +163,9 @@ balloon.process_incoming_message = function(e)
 	if S{'mode', 'all'}[balloon.debug] then print("Mode: " .. mode .. " Text: " .. e.message) end
 
 	-- skip text modes that aren't NPC speech
-    if not S{chat_modes.message, chat_modes.system, chat_modes.timed_battle, chat_modes.timed_message}[mode] then 
+    if not S{chat_modes.message, chat_modes.system, chat_modes.timed_battle, chat_modes.timed_message}[mode] then
         if S{'all'}[balloon.debug] then print(("Not accepted mode: %d"):format(mode)) end
-        return 
+        return
     end
 
 	-- blank prompt line that auto-continues itself,
@@ -198,7 +198,7 @@ balloon.process_balloon = function(npc_text, mode)
 	local npc_prefix = ""
 	if start ~= nil then
 		if _end < 32 and start > 0 then 
-            npc_prefix = npc_text:sub(start, _end) 
+            npc_prefix = npc_text:sub(start, _end)
         end
 	end
 	local npc_name = npc_prefix:sub(0, #npc_prefix-2)
@@ -208,18 +208,34 @@ balloon.process_balloon = function(npc_text, mode)
 		ui:set_type(mode)
 	end
 
+    -- pass through the original message for the log
+    local result = npc_text
+
 	-- mode 1, blank log lines and visible balloon
 	if balloon.settings.display_mode == 1 then
-		if npc_prefix == "" then
-			result = "" .. "\n"
-		else
-            -- Preserve prompt chars
-			result = npc_prefix .. '...' .. npc_text:sub(#npc_text-1, #npc_text)
-		end
-	-- mode 2, visible log and balloon
-	elseif balloon.settings.display_mode == 2 then
-		-- pass through the original message for the log
-		result = npc_text
+        -- Check if message contains prompt chars
+        local end_of_text_pos = #npc_text - 1
+        for _, prompt_chars in ipairs(defines.STRIP_PROMPT_CHARS) do
+            local prompt_pos, _ = npc_text:find(prompt_chars, -4, true)
+            if prompt_pos ~= nil then
+                end_of_text_pos = prompt_pos
+                break
+            end
+        end
+        result = npc_prefix
+        if npc_prefix ~= "" then
+            result = result .. '...'
+        end
+        -- Preserve prompt chars
+        result = result .. npc_text:sub(end_of_text_pos, #npc_text)
+
+		-- if npc_prefix == "" then
+		-- 	-- result = "" .. "\n"
+        --     result = npc_text:sub(#npc_text-1, #npc_text)
+		-- else
+        --     -- Preserve prompt chars
+		-- 	result = npc_prefix .. '...' .. npc_text:sub(#npc_text-1, #npc_text)
+		-- end
 	end
 
     if S{'chars', 'all'}[balloon.debug] then print("npc_text: " .. npc_text) end
@@ -378,7 +394,7 @@ local function print_help(isError)
     end)
 end
 
-ashita.events.register('command', 'balloon_command_cb', function (e)
+ashita.events.register('command', 'balloon_command_cb', function(e)
     -- Parse the command arguments..
     local args = e.command:args()
     if (#args == 0 or (args[1] ~= '/bl' and args[1] ~= '/balloon')) then
@@ -568,7 +584,7 @@ ashita.events.register('load', 'balloon_load', function()
     end)
 end)
 
-ashita.events.register('unload', 'balloon_unload', function ()
+ashita.events.register('unload', 'balloon_unload', function()
     -- print("balloon.unload")
     ui:destroy()
 end)
@@ -586,7 +602,7 @@ ashita.events.register('packet_in', 'balloon_packet_in', function(e)
 	end
 end)
 
-ashita.events.register('text_in', 'balloon_text_in', function (e)
+ashita.events.register('text_in', 'balloon_text_in', function(e)
     if balloon.theme_options == nil then
         return
     end
@@ -600,7 +616,7 @@ ashita.events.register('text_in', 'balloon_text_in', function (e)
     end
 end)
 
-ashita.events.register('d3d_present', 'balloon_d3d_present', function ()
+ashita.events.register('d3d_present', 'balloon_d3d_present', function()
     if balloon.theme_options == nil then
         return
     end

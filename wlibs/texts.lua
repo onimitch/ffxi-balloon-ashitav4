@@ -173,7 +173,7 @@ local function get_font_settings(settings)
 
         outline_color = d3d.D3DCOLOR_ARGB(settings.text.stroke.alpha, settings.text.stroke.red, settings.text.stroke.green, settings.text.stroke.blue),
         outline_width = settings.text.stroke.width,
-    
+
         position_x = 0,
         position_y = 0,
         visible = true,
@@ -277,8 +277,8 @@ function texts.new(str, settings, root_settings)
     return setmetatable(t, _meta.Text)
 end
 
-function texts.font_object(t)
-    return meta[t].font_object
+function texts.render(t, sprite)
+    return meta[t].font_object:render(sprite)
 end
 
 local function count_utf8_chars(str)
