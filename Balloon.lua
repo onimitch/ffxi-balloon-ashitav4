@@ -23,21 +23,6 @@ local tests = require('tests')
 local defines = require('defines')
 
 
--- TODO
-
--- Check outgoing packets for prompt continue action
--- Check incoming packets for popup menu to change behaviour and not be timed
--- Animate text via clipping of font texture, e.g texts.clip_range(1,-1)
--- Move close
--- Mouse drag to move position of bubble
-
--- TIDY UP
-
--- Strip any other unused code
--- Strip out debug prints
--- Tidy up error prints
-
-
 local chat_modes = defines.chat_modes
 local chat_color_codes = defines.chat_color_codes
 
@@ -82,7 +67,7 @@ balloon.initialize = function()
 	-- end
 
 	if balloon.theme_options ~= nil then
-        print(chat.header(addon.name):append(chat.message('Loaded Theme "%s", %s'):format(balloon.settings.theme, balloon.lang_code)))
+        print(chat.header(addon.name):append(chat.message('Theme "%s", language: %s'):format(balloon.settings.theme, balloon.lang_code)))
     end
 end
 
@@ -412,7 +397,12 @@ ashita.events.register('command', 'balloon_command_cb', function (e)
     -- Handle: /balloon [0,1,2]
     if (#args == 2 and args[2]:any('0', '1', '2')) then
         balloon.settings.display_mode = tonumber(args[2])
-        print(chat.header(addon.name):append(chat.message('Display mode changed: ')):append(chat.success(tostring(balloon.settings.display_mode))))
+        local mode_desc = {
+            'Hiding balloon & displaying log.',
+            'Show balloon & hide log.',
+            'Show balloon & displaying log.',
+        }
+        print(chat.header(addon.name):append(chat.message('Display mode changed: ')):append(chat.success(mode_desc[balloon.settings.display_mode + 1])))
         settings.save()
         return
     end
@@ -579,7 +569,7 @@ ashita.events.register('load', 'balloon_load', function()
 end)
 
 ashita.events.register('unload', 'balloon_unload', function ()
-    print("balloon.unload")
+    -- print("balloon.unload")
     ui:destroy()
 end)
 
@@ -603,7 +593,7 @@ ashita.events.register('text_in', 'balloon_text_in', function (e)
 
     if not balloon.processing_message then
         balloon.processing_message = true
-        
+
         balloon.process_incoming_message(e)
 
         balloon.processing_message = false

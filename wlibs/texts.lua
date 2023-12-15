@@ -142,7 +142,6 @@ local apply_settings = function(_, t, settings)
     texts.stroke_alpha(t, settings.text.stroke.alpha)
     texts.width(t, settings.box_width)
     texts.height(t, settings.box_height)
-    -- texts.regions(t, settings.regions)
 
     call_events(t, 'reload')
 end

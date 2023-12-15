@@ -10,7 +10,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 ]]--
 
 local function GetLibPath()
-  return debug.getinfo(2, "S").source:sub(2);
+    return debug.getinfo(2, "S").source:sub(2);
 end
 
 local libPath    = GetLibPath();
@@ -72,14 +72,13 @@ else
 end
 local vec_position = ffi.new('D3DXVECTOR2', { 0, 0, });
 local vec_scale = ffi.new('D3DXVECTOR2', { 1.0, 1.0, });
-local d3dwhite = d3d.D3DCOLOR_ARGB(255, 255, 255, 255);
 local autoRender = false;
 
 local function render_objects()
     if (sprite ~= nil) then
         sprite:Begin();
         for _,obj in ipairs(objects) do
-            if (obj.settings.visible) then
+            if (obj.settings.visible and obj.settings.opacity > 0) then
                 local texture, rect = obj:get_texture();
                 if (texture ~= nil) then
                     if (obj.settings.font_alignment == 1) then
@@ -90,7 +89,9 @@ local function render_objects()
                         vec_position.x = obj.settings.position_x;
                     end
                     vec_position.y = obj.settings.position_y;
-                    sprite:Draw(texture, rect, vec_scale, nil, 0.0, vec_position, d3dwhite);
+                    
+                    local render_color = d3d.D3DCOLOR_ARGB(obj.settings.opacity, 255, 255, 255);
+                    sprite:Draw(texture, rect, vec_scale, nil, 0.0, vec_position, render_color);
                 end
             end
         end

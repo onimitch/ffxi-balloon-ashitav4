@@ -29,6 +29,7 @@ local default_settings = {
     position_y = 0,
     visible = true,
     text = '',
+    opacity = 255,
 };
 
 local function CreateFontData(settings)
@@ -114,6 +115,16 @@ function object:get_texture()
     return self.texture, self.rect;
 end
 
+function object:get_text_size()
+    if self.is_dirty then
+        self:get_texture();
+    end
+    if self.rect == nil then
+        return 0, 0;
+    end
+    return (self.rect.right - self.rect.left), (self.rect.bottom - self.rect.top);
+end
+
 function object:new(renderer, interface, settings)
     local o = {};
     setmetatable(o, self);
@@ -162,6 +173,10 @@ function object:set_font_color(color)
     end
 
     self.settings.font_color = color;
+end
+
+function object:set_opacity(opacity)
+    self.settings.opacity = opacity;
 end
 
 function object:set_font_family(family)

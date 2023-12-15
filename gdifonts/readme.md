@@ -120,5 +120,5 @@ local utf8Resource = encoding:ShiftJIS_To_UTF8(sjResource);
 
 You can also convert back to shift-JIS if necessary.
 ```
-local sjResourceAgain = encoding:UTF8_to_ShiftJIS(utf8Resource);
+local sjResourceAgain = encoding:UTF8_To_ShiftJIS(utf8Resource);
 ```

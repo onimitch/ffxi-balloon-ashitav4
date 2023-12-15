@@ -11,29 +11,56 @@ local code_page = {
     shiftjis = 932,
 };
 
-local function Convert_String(input, codepage_from, codepage_to)
+local converted_str_cache = {};
+
+local function Convert_String(input, codepage_from, codepage_to, cache)
     input = tostring(input or '');
+
+    -- Check cache
+    local cache_key = input .. '|' .. codepage_from .. '>' .. codepage_to;
+    if cache == true then
+        local cached_str = converted_str_cache[cache_key];
+        if cached_str ~= nil then
+            return cached_str;
+        end
+    end
+    
+    -- lua string > char[]
     local source_length = string.len(input);
-    local cbuffer = ffi.new('char[?]', source_length+1);
+    local cbuffer = ffi.new('char[?]', source_length + 1); -- +1 for zero termination
     ffi.copy(cbuffer, input);
 
+    -- char[] > wchar_t[]
     local wchar_Length = ffi.C.MultiByteToWideChar(codepage_from, 0, cbuffer, -1, nil, 0);
     local wbuffer = ffi.new('wchar_t[?]', wchar_Length);
     ffi.C.MultiByteToWideChar(codepage_from, 0, cbuffer, -1, wbuffer, wchar_Length);
 
+    -- wchar_t[] > char[]
     local char_length = ffi.C.WideCharToMultiByte(codepage_to, 0, wbuffer, -1, nil, 0, 0)
     cbuffer = ffi.new('char[?]', char_length);
     ffi.C.WideCharToMultiByte(codepage_to, 0, wbuffer, -1, cbuffer, char_length, 0);
 
-    return ffi.string(cbuffer);
+    -- Back to lua string
+    local new_str = ffi.string(cbuffer);
+
+    -- Add to cache
+    if cache == true then
+        converted_str_cache[cache_key] = new_str;
+    end
+
+    return new_str;
 end
 
-function exports:ShiftJIS_To_UTF8(input)
-    return Convert_String(input, code_page.shiftjis, code_page.utf8);
+function exports:ShiftJIS_To_UTF8(input, cache)
+    return Convert_String(input, code_page.shiftjis, code_page.utf8, cache);
 end
 
-function exports:UTF8_To_ShiftJIS(input)
-    return Convert_String(input, code_page.utf8, code_page.shiftjis);
+function exports:UTF8_To_ShiftJIS(input, cache)
+    return Convert_String(input, code_page.utf8, code_page.shiftjis, cache);
+end
+
+function exports:Clear_String_Cache()
+    encoded_str_cache = {}
 end
 
 return exports;

@@ -160,8 +160,6 @@ end
 function ui:destroy()
     ui._sprite = nil
 
-    gdi:destroy_interface()
-
     if ui.message_background ~= nil then 
         ui.message_background:destroy()
         ui.message_background = nil
@@ -199,6 +197,8 @@ function ui:destroy()
         ui.timer_text:destroy()
         ui.timer_text = nil
     end
+
+    gdi:destroy_interface()
 end
 
 function ui:scale(scale, position)
@@ -483,7 +483,7 @@ function ui:animate_text_display(char_count)
     end
 
     self._chars_shown = math.min(text_length, self._chars_shown + char_count)
-    self.message_text:text(self._current_text:sub(0,self._chars_shown))
+    self.message_text:text(self._current_text:sub(0, self._chars_shown))
 end
 
 function ui:hidden()
