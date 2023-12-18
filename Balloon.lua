@@ -32,8 +32,8 @@ local chat_color_codes = defines.chat_color_codes
 local balloon = {}
 balloon.debug = 'off'
 balloon.moving = false
-balloon.old_x = "0"
-balloon.old_y = "0"
+balloon.old_x = 0
+balloon.old_y = 0
 -- balloon.keydown = false
 -- balloon.mouse_on = false
 balloon.prev_path = nil
@@ -134,8 +134,8 @@ end
 -- 	while true do
 -- 		-- me = windower.ffxi.get_mob_by_id(p.id)
 -- 		-- if me ~= nil then
---         x = string.format("%6d",entity:GetLocalPositionX(index))
---         y = string.format("%6d",entity:GetLocalPositionY(index))
+--         x = string.format('%6d',entity:GetLocalPositionX(index))
+--         y = string.format('%6d',entity:GetLocalPositionY(index))
 --         --if x ~= old_x and y ~= old_y then
 --         if (tonumber(x) < tonumber(balloon.old_x) - 1 or tonumber(x) > tonumber(balloon.old_x) + 1) or (tonumber(y) < tonumber(balloon.old_y) - 1 or tonumber(y) > tonumber(balloon.old_y) + 1) then
 --             balloon.moving = true
@@ -157,14 +157,14 @@ end
 
 balloon.process_incoming_message = function(e)
     -- Obtain the chat mode..
-    local mode = bit.band(e.mode_modified,  0x000000FF);
+    local mode = bit.band(e.mode_modified,  0x000000FF)
 
 	-- print debug info
-	if S{'mode', 'all'}[balloon.debug] then print("Mode: " .. mode .. " Text: " .. e.message) end
+	if S{'mode', 'all'}[balloon.debug] then print('Mode: ' .. mode .. ' Text: ' .. e.message) end
 
 	-- skip text modes that aren't NPC speech
     if not S{chat_modes.message, chat_modes.system, chat_modes.timed_battle, chat_modes.timed_message}[mode] then
-        if S{'all'}[balloon.debug] then print(("Not accepted mode: %d"):format(mode)) end
+        if S{'all'}[balloon.debug] then print(('Not accepted mode: %d'):format(mode)) end
         return
     end
 
@@ -176,142 +176,142 @@ balloon.process_incoming_message = function(e)
 	end
 
 	-- print debug info
-	-- if S{'codes', 'all'}[balloon.debug] then print("codes: " .. codes(e.message)) end
+	-- if S{'codes', 'all'}[balloon.debug] then print('codes: ' .. codes(e.message)) end
 
 	if balloon.settings.display_mode >= 1 then
-		e.message_modified = balloon.process_balloon(e.message, mode)
+		e.message_modified = balloon.process_balloon(e.message_modified, mode)
     end
 end
 
-balloon.process_balloon = function(npc_text, mode)
-	balloon.last_text = npc_text
+balloon.process_balloon = function(message, mode)
+	balloon.last_text = message
 	balloon.last_mode = mode
 
 	-- detect whether messages have a prompt button
 	local timed = true
-	if S{chat_modes.message, chat_modes.system}[mode] and npc_text:sub(-#defines.PROMPT_CHARS) == defines.PROMPT_CHARS then
+	if S{chat_modes.message, chat_modes.system}[mode] and message:sub(-#defines.PROMPT_CHARS) == defines.PROMPT_CHARS then
 		timed = false
 	end
 
 	-- 発言者名の抽出 (Speaker name extraction)
-	local start,_end = npc_text:find(".- : ")
-	local npc_prefix = ""
+	local start, _end = message:find('.- : ')
+	local npc_prefix = ''
 	if start ~= nil then
 		if _end < 32 and start > 0 then 
-            npc_prefix = npc_text:sub(start, _end)
+            npc_prefix = message:sub(start, _end)
         end
 	end
 	local npc_name = npc_prefix:sub(0, #npc_prefix-2)
-	npc_name = string.trimex(npc_name)
-
-	if not ui:set_character(npc_name) then
-		ui:set_type(mode)
-	end
+	npc_name = npc_name:trimex()
 
     -- pass through the original message for the log
-    local result = npc_text
+    local result = message
 
 	-- mode 1, blank log lines and visible balloon
 	if balloon.settings.display_mode == 1 then
         -- Check if message contains prompt chars
-        local end_of_text_pos = #npc_text - 1
+        local end_of_text_pos = #message - 1
         for _, prompt_chars in ipairs(defines.STRIP_PROMPT_CHARS) do
-            local prompt_pos, _ = npc_text:find(prompt_chars, -4, true)
+            local prompt_pos, _ = message:find(prompt_chars, -4, true)
             if prompt_pos ~= nil then
                 end_of_text_pos = prompt_pos
                 break
             end
         end
         result = npc_prefix
-        if npc_prefix ~= "" then
+        if npc_prefix ~= '' then
             result = result .. '...'
         end
         -- Preserve prompt chars
-        result = result .. npc_text:sub(end_of_text_pos, #npc_text)
+        result = result .. message:sub(end_of_text_pos, #message)
 
-		-- if npc_prefix == "" then
-		-- 	-- result = "" .. "\n"
-        --     result = npc_text:sub(#npc_text-1, #npc_text)
+		-- if npc_prefix == '' then
+		-- 	-- result = '' .. '\n'
+        --     result = message:sub(#message-1, #message)
 		-- else
         --     -- Preserve prompt chars
-		-- 	result = npc_prefix .. '...' .. npc_text:sub(#npc_text-1, #npc_text)
+		-- 	result = npc_prefix .. '...' .. message:sub(#message-1, #message)
 		-- end
 	end
 
-    if S{'chars', 'all'}[balloon.debug] then print("npc_text: " .. npc_text) end
-    if S{'codes', 'all'}[balloon.debug] then print("codes before: " .. codes(npc_text:sub(-4))) end
+    -- if S{'chars', 'all'}[balloon.debug] then 
+        print('message: ' .. message)
+    -- end
+    if S{'codes', 'all'}[balloon.debug] then print('codes before: ' .. codes(message:sub(-4))) end
 
 	-- 発言 (Remark)
-	local mes = SubCharactersPreShift(npc_text)
-	mes = encoding:ShiftJIS_To_UTF8(mes)
-    mes = SubCharactersPostShift(mes)
+	message = SubCharactersPreShift(message)
+	message = encoding:ShiftJIS_To_UTF8(message)
+    message = SubCharactersPostShift(message)
 
 	-- strip the NPC name from the start of the message
-	if npc_prefix ~= "" then
-		mes = mes:gsub(npc_prefix:gsub("-","--"),"") --タルタル等対応 (Correspondence such as tartar)
+	if npc_prefix ~= '' then
+		message = message:gsub(npc_prefix:gsub('-','--'),'') --タルタル等対応 (Correspondence such as tartar)
 	end
 
-	if S{'process', 'all'}[balloon.debug] then print("Pre-process: " .. mes) end
-	if S{'codes', 'all'}[balloon.debug] then print("codes after: " .. codes(mes:sub(-4))) end
+	if S{'process', 'all'}[balloon.debug] then print('Pre-process: ' .. message) end
+	if S{'codes', 'all'}[balloon.debug] then print('codes after: ' .. codes(message:sub(-4))) end
 
+    -- TODO: Check if this is necessary
 	-- strip the default color code from the start of messages,
 	-- it causes the first part of the message to get cut off somehow
 	local default_color = chat_color_codes.standard
-	if string.sub(mes, 1, #default_color) == default_color then
-		mes = string.sub(mes, #default_color + 1)
+	if string.sub(message, 1, #default_color) == default_color then
+		message = string.sub(message, #default_color + 1)
 	end
 
-	-- split by newlines
-	local message_lines = mes:split(string.char(0x07))
-
-	local message = ""
-	for k,v in ipairs(message_lines) do
-        -- Strip out everything after a prompt character
-        for _, prompt_chars in ipairs(defines.STRIP_PROMPT_CHARS) do
-            local prompt_pos, _ = v:find(prompt_chars, -4, true)
-            if prompt_pos ~= nil then
-                v = v:sub(1, prompt_pos - 1)
-            end
+    -- Strip out everything after a prompt character
+    for _, prompt_chars in ipairs(defines.STRIP_PROMPT_CHARS) do
+        local prompt_pos, _ = message:find(prompt_chars, -4, true)
+        if prompt_pos ~= nil then
+            message = message:sub(1, prompt_pos - 1)
         end
+    end
 
-		v = string.gsub(v, chat_color_codes.standard, "[BL_c1]") --color code 1 (black/reset)
-		v = string.gsub(v, chat_color_codes.item, "[BL_c2]") --color code 2 (green/regular items)
-		v = string.gsub(v, chat_color_codes.key_item, "[BL_c3]") --color code 3 (blue/key items)
-		v = string.gsub(v, chat_color_codes.blue, "[BL_c4]") --color code 4 (blue/???)
-		v = string.gsub(v, chat_color_codes.magenta, "[BL_c5]") --color code 5 (magenta/equipment?)
-		v = string.gsub(v, chat_color_codes.cyan, "[BL_c6]") --color code 6 (cyan/???)
-		v = string.gsub(v, chat_color_codes.yellow, "[BL_c7]") --color code 7 (yellow/???)
-		v = string.gsub(v, chat_color_codes.orange, "[BL_c8]") --color code 8 (orange/RoE objectives?)
-		v = string.gsub(v, chat_color_codes.cutscene_emote, "") --cutscene emote color code (handled by the message type instead)
-        
-		v = string.gsub(v, "^?([%w%.'(<“])", "%1")
-		v = string.gsub(v, '(%w)(%.%.%.+)([%w“])', "%1%2 %3") --add a space after elipses to allow better line splitting
-		v = string.gsub(v, '([%w”])%-%-([%w%p])', "%1-- %2") --same for double dashes
+    message = message:gsub(chat_color_codes.standard, '[BL_c1]') --color code 1 (black/reset)
+    message = message:gsub(chat_color_codes.item, '[BL_c2]') --color code 2 (green/regular items)
+    message = message:gsub(chat_color_codes.key_item, '[BL_c3]') --color code 3 (blue/key items)
+    message = message:gsub(chat_color_codes.blue, '[BL_c4]') --color code 4 (blue/???)
+    message = message:gsub(chat_color_codes.magenta, '[BL_c5]') --color code 5 (magenta/equipment?)
+    message = message:gsub(chat_color_codes.cyan, '[BL_c6]') --color code 6 (cyan/???)
+    message = message:gsub(chat_color_codes.yellow, '[BL_c7]') --color code 7 (yellow/???)
+    message = message:gsub(chat_color_codes.orange, '[BL_c8]') --color code 8 (orange/RoE objectives?)
+    message = message:gsub(chat_color_codes.cutscene_emote, '') --cutscene emote color code (handled by the message type instead)
 
-		v = string.gsub(v, "%[BL_c1]", "\\cr")
-		v = string.gsub(v, "%[BL_c2]", "\\cs("..ui._type.items..")")
-		v = string.gsub(v, "%[BL_c3]", "\\cs("..ui._type.keyitems..")")
-		v = string.gsub(v, "%[BL_c4]", "\\cs("..ui._type.keyitems..")")
-		v = string.gsub(v, "%[BL_c5]", "\\cs("..ui._type.gear..")")
-		v = string.gsub(v, "%[BL_c6]", "\\cs(0,159,173)")
-		v = string.gsub(v, "%[BL_c7]", "\\cs(156,149,19)")
-		v = string.gsub(v, "%[BL_c8]", "\\cs("..ui._type.roe..")")
-		--TODO: theme settings for these element colors
-		v = string.gsub(v, "%[BL_Fire]", "\\cs(255,0,0)Fire \\cr")
-		v = string.gsub(v, "%[BL_Ice]", "\\cs(0,255,255)Ice \\cr")
-		v = string.gsub(v, "%[BL_Wind]", "\\cs(0,255,0)Wind \\cr")
-		v = string.gsub(v, "%[BL_Earth]", "\\cs(153,76,0)Earth \\cr")
-		v = string.gsub(v, "%[BL_Lightning]", "\\cs(127,0,255)Lightning \\cr")
-		v = string.gsub(v, "%[BL_Water]", "\\cs(0,76,153)Water \\cr")
-		v = string.gsub(v, "%[BL_Light]", "\\cs(224,224,224)Light \\cr")
-		v = string.gsub(v, "%[BL_Dark]", "\\cs(82,82,82)Dark \\cr")
+    message = message:gsub('^?([%w%.\'(<“])', '%1')
+    message = message:gsub('(%w)(%.%.%.+)([%w“])', '%1%2 %3') --add a space after elipses to allow better line splitting
+    message = message:gsub('([%w”])%-%-([%w%p])', '%1-- %2') --same for double dashes
 
-		message = message .. string.format('\n%s', v)
+    message = message:gsub('%[BL_c1]', '\\cr')
+    message = message:gsub('%[BL_c2]', '\\cs('..ui._type.items..')')
+    message = message:gsub('%[BL_c3]', '\\cs('..ui._type.keyitems..')')
+    message = message:gsub('%[BL_c4]', '\\cs('..ui._type.keyitems..')')
+    message = message:gsub('%[BL_c5]', '\\cs('..ui._type.gear..')')
+    message = message:gsub('%[BL_c6]', '\\cs(0,159,173)')
+    message = message:gsub('%[BL_c7]', '\\cs(156,149,19)')
+    message = message:gsub('%[BL_c8]', '\\cs('..ui._type.roe..')')
+    --TODO: theme settings for these element colors
+    message = message:gsub('%[BL_Fire]', '\\cs(255,0,0)Fire \\cr')
+    message = message:gsub('%[BL_Ice]', '\\cs(0,255,255)Ice \\cr')
+    message = message:gsub('%[BL_Wind]', '\\cs(0,255,0)Wind \\cr')
+    message = message:gsub('%[BL_Earth]', '\\cs(153,76,0)Earth \\cr')
+    message = message:gsub('%[BL_Lightning]', '\\cs(127,0,255)Lightning \\cr')
+    message = message:gsub('%[BL_Water]', '\\cs(0,76,153)Water \\cr')
+    message = message:gsub('%[BL_Light]', '\\cs(224,224,224)Light \\cr')
+    message = message:gsub('%[BL_Dark]', '\\cs(82,82,82)Dark \\cr')
+    -- Mid message line breaks
+    message = message:gsub(string.char(0x07), '\n')
+
+
+    if S{'codes', 'all'}[balloon.debug] then print('codes end: ' .. codes(message:sub(-4))) end
+	-- if S{'process', 'all'}[balloon.debug] then 
+        print('Final: ' .. encoding:UTF8_To_ShiftJIS(message))
+    -- end
+
+
+    if not ui:set_character(npc_name) then
+		ui:set_type(mode)
 	end
-
-    if S{'codes', 'all'}[balloon.debug] then print("codes end: " .. codes(message:sub(-4))) end
-	if S{'process', 'all'}[balloon.debug] then print("Final: " .. message) end
-
 	ui:set_message(message:trimex())
 	balloon.open(timed)
 
@@ -327,7 +327,7 @@ end
 
 function SubCharactersPreShift(str)
 	local new_str = str
-	if S{'chars', 'all'}[balloon.debug] then print("Pre-charsub pre-shift: " .. new_str) end
+	if S{'chars', 'all'}[balloon.debug] then print('Pre-charsub pre-shift: ' .. new_str) end
 	new_str = string.gsub(new_str, string.char(0x81, 0x40), '    ') -- tab
 	new_str = string.gsub(new_str, string.char(0x81, 0xF4), '[BL_note]') -- musical note
 	new_str = string.gsub(new_str, string.char(0x81, 0x99), '[BL_bstar]') -- empty star
@@ -338,22 +338,22 @@ function SubCharactersPreShift(str)
 	new_str = string.gsub(new_str, string.char(0x88, 0x69), '[BL_e_acute]') -- acute accented e
 
 	-- element symbols
-	new_str = string.gsub(new_str, string.char(0xEF,0x1F), "[BL_Fire]")
-	new_str = string.gsub(new_str, string.char(0xEF,0x20), "[BL_Ice]")
-	new_str = string.gsub(new_str, string.char(0xEF,0x21), "[BL_Wind]")
-	new_str = string.gsub(new_str, string.char(0xEF,0x22), "[BL_Earth]")
-	new_str = string.gsub(new_str, string.char(0xEF,0x23), "[BL_Lightning]")
+	new_str = string.gsub(new_str, string.char(0xEF,0x1F), '[BL_Fire]')
+	new_str = string.gsub(new_str, string.char(0xEF,0x20), '[BL_Ice]')
+	new_str = string.gsub(new_str, string.char(0xEF,0x21), '[BL_Wind]')
+	new_str = string.gsub(new_str, string.char(0xEF,0x22), '[BL_Earth]')
+	new_str = string.gsub(new_str, string.char(0xEF,0x23), '[BL_Lightning]')
 	-- extra 0x25 in these two to escape the characters
-	new_str = string.gsub(new_str, string.char(0xEF,0x25,0x24), "[BL_Water]")
-	new_str = string.gsub(new_str, string.char(0xEF,0x25,0x25), "[BL_Light]")
-	new_str = string.gsub(new_str, string.char(0xEF,0x26), "[BL_Dark]")
-	if S{'chars', 'all'}[balloon.debug] then print("Post-charsub pre-shift: " .. new_str) end
+	new_str = string.gsub(new_str, string.char(0xEF,0x25,0x24), '[BL_Water]')
+	new_str = string.gsub(new_str, string.char(0xEF,0x25,0x25), '[BL_Light]')
+	new_str = string.gsub(new_str, string.char(0xEF,0x26), '[BL_Dark]')
+	if S{'chars', 'all'}[balloon.debug] then print('Post-charsub pre-shift: ' .. new_str) end
 	return new_str
 end
 
 function SubCharactersPostShift(str)
 	local new_str = str
-	if S{'chars', 'all'}[balloon.debug] then print("Pre-charsub post-shift: " .. new_str) end
+	if S{'chars', 'all'}[balloon.debug] then print('Pre-charsub post-shift: ' .. new_str) end
 	new_str = string.gsub(new_str, '%[BL_note]', '♪')
 	new_str = string.gsub(new_str, '%[BL_bstar]', '☆')
 	new_str = string.gsub(new_str, '%[BL_wstar]', '★')
@@ -361,7 +361,7 @@ function SubCharactersPostShift(str)
 	new_str = string.gsub(new_str, '%[BL_cldquote]', '“')
 	new_str = string.gsub(new_str, '%[BL_crdquote]', '”')
 	new_str = string.gsub(new_str, '%[BL_e_acute]', 'é')
-	if S{'chars', 'all'}[balloon.debug] then print("Post-charsub post-shift: " .. new_str) end
+	if S{'chars', 'all'}[balloon.debug] then print('Post-charsub post-shift: ' .. new_str) end
 	return new_str
 end
 
@@ -385,7 +385,7 @@ local function print_help(isError)
         { '/balloon text_speed <chars>', 'Speed that text is displayed, in characters per frame.' },
         { '/balloon portrait', 'Toggle the display of character portraits, if the theme has settings for them.' },
         { '/balloon move_closes', 'Toggle balloon auto-close on player movement.' },
-        { '/balloon test <name> <lang> <mode>', 'Display a test bubble. Lang: - (auto), en or ja. Mode: 1 (dialogue), 2 (system). \"/balloon test\" to see the list of available tests.' },
+        { '/balloon test <name> <lang> <mode>', 'Display a test bubble. Lang: - (auto), en or ja. Mode: 1 (dialogue), 2 (system). "/balloon test" to see the list of available tests.' },
     }
 
     -- Print the command list..
@@ -402,7 +402,7 @@ ashita.events.register('command', 'balloon_command_cb', function(e)
     end
 
     -- Block all related commands..
-    e.blocked = true;
+    e.blocked = true
 
     -- Handle: /balloon help
     if (#args == 2 and args[2]:any('help')) then
@@ -536,7 +536,7 @@ ashita.events.register('command', 'balloon_command_cb', function(e)
             for k, _ in pairs(tests) do
                 table.insert(test_names, k)
             end
-            print(chat.header(addon.name):append("Available tests: "):append(chat.success(test_names:join(', '))))
+            print(chat.header(addon.name):append('Available tests: '):append(chat.success(test_names:join(', '))))
             return
         end
 
@@ -557,6 +557,7 @@ ashita.events.register('command', 'balloon_command_cb', function(e)
         end
 
         local npc_name = test_entry[1]
+        print(chat.header(addon.name):append(chat.message('Test: %s (%s)'):format(test_name, lang)))
         local message = test_entry[lang_index]
         local mode = args[5] == '2' and chat_modes.system or chat_modes.message
         balloon.process_balloon(npc_name .. ' : ' .. message, mode)
@@ -585,7 +586,7 @@ ashita.events.register('load', 'balloon_load', function()
 end)
 
 ashita.events.register('unload', 'balloon_unload', function()
-    -- print("balloon.unload")
+    -- print('balloon.unload')
     ui:destroy()
 end)
 
@@ -594,7 +595,7 @@ ashita.events.register('packet_in', 'balloon_packet_in', function(e)
         return
     end
 
-	-- if S{'chunk', 'all'}[balloon.debug] then print("Chunk: " .. string.format('0x%02X', e.id) .. " original: " .. e.data_modified) end
+	-- if S{'chunk', 'all'}[balloon.debug] then print('Chunk: ' .. string.format('0x%02X', e.id) .. ' original: ' .. e.data_modified) end
 
 	--会話中かの確認 (Check if you have left a conversation)
 	if S{defines.LEAVE_CONVERSATION_PACKET, defines.ZONE_OUT_PACKET}[e.id] then
@@ -604,6 +605,10 @@ end)
 
 ashita.events.register('text_in', 'balloon_text_in', function(e)
     if balloon.theme_options == nil then
+        return
+    end
+    -- Ignore text in from Ashita addons/plugins
+    if e.injected then
         return
     end
 
@@ -617,14 +622,21 @@ ashita.events.register('text_in', 'balloon_text_in', function(e)
 end)
 
 ashita.events.register('d3d_present', 'balloon_d3d_present', function()
-    if balloon.theme_options == nil then
-        return
-    end
-
     -- Calculate delta time for animations
     local frame_time = os.clock()
     local delta_time = frame_time - balloon.last_frame_time
     balloon.last_frame_time = frame_time
+
+    if balloon.theme_options == nil then
+        return
+    end
+
+    -- Don't display unless we have a player entity and we're not zoning
+    local player = AshitaCore:GetMemoryManager():GetPlayer()
+    local player_ent = GetPlayerEntity()
+    if (player == nil or player.isZoning or player_ent == nil) then
+		return
+	end
 
     if not ui:hidden() then
         ui:render(delta_time)
@@ -650,7 +662,7 @@ end)
 -- 	if S{ENTER_KEY, SCROLL_LOCK_KEY}[key_id] and not pressed then balloon.keydown = false end
 -- end)
 
--- windower.register_event("mouse",function(type,x,y,delta,blocked)
+-- windower.register_event('mouse',function(type,x,y,delta,blocked)
 --     if not ui.message_background:hover(x, y) then return false end
 
 -- 	-- press

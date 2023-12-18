@@ -17,8 +17,11 @@ defines.chat_color_codes = T{
     yellow = string.char(0x1E,0x07),
     -- color code 8 (orange/RoE objectives?)
     orange = string.char(0x1E,0x08),
-    
-    cutscene_emote = string.char(0x1F,0x0F)
+
+    cutscene_emote = string.char(0x1F,0x0F),
+
+    -- characters used to start a color code
+    -- leadchars = string.char(0x1E, 0x1F),
 }
 
 defines.chat_modes = T{

@@ -27,6 +27,25 @@ tests.item = {
     [[‚Æ]] .. cc.item .. [[ƒf[ƒc]] .. cc.standard .. [[‚ğ—pˆÓ‚µ‚Ä‚Ù‚µ‚¢ƒNƒ|I]],
 }
 
+tests.colors = {
+    'Test',
+    [[‚P]] .. cc.item .. [[Item]] .. cc.standard .. ', ' ..
+    [[‚Q]] .. cc.key_item .. [[Key item]] .. cc.standard .. ', ' ..
+    [[‚R]] .. cc.blue .. [[Blue]] .. cc.standard .. ', ' ..
+    [[‚S]] .. cc.magenta .. [[Equipment?]] .. cc.standard .. ', ' ..
+    [[‚T]] .. cc.cyan .. [[Cyan]] .. cc.standard .. ', ' ..
+    [[‚U]] .. cc.yellow .. [[Yellow]] .. cc.standard .. ', ' ..
+    [[‚V]] .. cc.orange .. [[Orange]] .. cc.standard,
+
+    [[‚P]] .. cc.item .. [[ƒAƒCƒeƒ€]] .. cc.standard .. ', ' ..
+    [[‚Q]] .. cc.key_item .. [[‘å–‚È‚à‚Ì]] .. cc.standard .. ', ' ..
+    [[‚R]] .. cc.blue .. [[Â]] .. cc.standard .. ', ' ..
+    [[‚S]] .. cc.magenta .. [[‘•”õH]] .. cc.standard .. ', ' ..
+    [[‚T]] .. cc.cyan .. [[ƒVƒAƒ“F]] .. cc.standard .. ', ' ..
+    [[‚U]] .. cc.yellow .. [[‰©F]] .. cc.standard .. ', ' ..
+    [[‚V]] .. cc.orange .. [[ƒIƒŒƒ“ƒWF]] .. cc.standard
+}
+
 tests.long = {
     'Test',
     'TODO',

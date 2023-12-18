@@ -282,54 +282,88 @@ function texts.render(t, sprite)
 end
 
 local function count_utf8_chars(str)
-    return utf8.len(str)
+    if utf8 and utf8.len then
+        return utf8.len(str)
+    else
+        return select(2, str:gsub('[^\128-\193]', ''))
+    end
 end
 
 local function parse_regions(str)
     local a = 1
     local b
     local regions = nil
+    local open_tag = '\\cs%([%d,]+%)'
+    local close_tag = '\\cr'
 
     while a do
-        a, b = str:find('\\cs%([%d,]+%)', a)
+        a, b = str:find(open_tag, a)
         if a then
             local tag = str:sub(a, b)
             local region_attr = str:match('[%d]+,[%d]+,[%d]+')
             local range_start = a
-            
+
             -- Strip out the tag
-            local before = str:sub(1, a-1)
-            local after = str:sub(b+1)
+            local before = str:sub(1, a - 1)
+            local after = str:sub(b + 1)
             str = before .. after
-            
+
             local range_start_u = count_utf8_chars(before) + 1
-            
+
             -- Find the closing tag
-            a, b = str:find('\\cr', a)
+            a, b = str:find(close_tag, a)
             if a then
                 local range_end = a - 1
-                
+
                 -- Strip out the tag
-                local before = str:sub(1, a-1)
-                local after = str:sub(b+1)
+                local before = str:sub(1, a - 1)
+                local after = str:sub(b + 1)
                 str = before .. after
-                
+
                 local range_end_u = count_utf8_chars(before)
 
                 regions = regions or {}
                 if regions[region_attr] == nil then
                     regions[region_attr] = {}
                 end
-                
+
                 local range = { 
                     start = range_start, 
                     length = range_end - range_start + 1,
                     start_u = range_start_u,
                     length_u = range_end_u - range_start_u + 1,
                 }
+                LogManager:Log(5, 'Balloon', 'Region [' .. region_attr .. '] Range: ' .. range.start_u .. ' - ' .. range.length_u .. ', '  .. range.start .. ' - ' .. range.length)
                 table.insert(regions[region_attr], range)
             end
         end
+    end
+
+    -- Strip any trailing color reset tags which might remain due to bad formatting
+    -- First we have to adjust any ranges that follow after this tag
+    if regions ~= nil then
+        local close_tag_length = #close_tag
+        a = 1
+        while a do
+            a, b = str:find(close_tag, a)
+            -- Adjust any ranges that follow after this tag
+            if a then
+                for k, r in pairs(regions) do
+                    for _, range in ipairs(r) do
+                        if range.start > a then
+                            range.start = range.start - close_tag_length
+                            range.start_u = range.start_u - close_tag_length
+                        end
+                    end
+                end
+                -- Strip out the tag
+                local before = str:sub(1, a - 1)
+                local after = str:sub(b + 1)
+                str = before .. after
+            end
+        end
+    else
+        str = str:gsub(close_tag, '')
     end
 
     return str, regions
@@ -357,15 +391,14 @@ function texts.update(t, attr)
     end
 
     -- Parse regions
-    local regions = {}
-    str, regions = parse_regions(str)
+    local cleaned_str, regions = parse_regions(str)
 
-    -- windower.text.set_text(m.name, str)
-    m.font_object:set_text(str)
+    -- windower.text.set_text(m.name, cleaned_str)
+    m.font_object:set_text(cleaned_str)
     m.font_object:set_regions(regions)
-    m.status.text.content = str
+    m.status.text.content = cleaned_str
 
-    return str
+    return cleaned_str
 end
 
 -- Restores the original text object not counting updated variables and added lines

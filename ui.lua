@@ -442,11 +442,12 @@ end
 
 function ui:set_message(message)
     self._current_text = message
-    self._chars_shown = 0
 
     if self._text_speed <= 0 then
+        self._chars_shown = #message
         self.message_text:text(message)
     else
+        self._chars_shown = 0
         self.message_text:text('')
     end
 
