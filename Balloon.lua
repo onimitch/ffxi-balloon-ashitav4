@@ -26,27 +26,26 @@ local defines = require('defines')
 local chat_modes = defines.chat_modes
 local chat_color_codes = defines.chat_color_codes
 
--- local ENTER_KEY = 28
--- local SCROLL_LOCK_KEY = 70
+local balloon = {
+    debug = 'off',
+    waiting_to_close = false,
+    close_timer = 0,
+    last_text = '',
+    last_mode = 0,
+    processing_message = false,
+    lang_code = 'en',
+    settings = {},
+    last_frame_time = 0,
+    theme_options = nil,
+    move_check_sensitivity = 0.01,
+}
 
-local balloon = {}
-balloon.debug = 'off'
-balloon.moving = false
-balloon.old_x = 0
-balloon.old_y = 0
--- balloon.keydown = false
--- balloon.mouse_on = false
-balloon.prev_path = nil
-balloon.waiting_to_close = false
-balloon.close_timer = 0
-balloon.last_text = ''
-balloon.last_mode = 0
-balloon.movement_thread = nil
-balloon.processing_message = false
-balloon.lang_code = 'en'
-balloon.settings = {}
-balloon.last_frame_time = 0
-balloon.theme_options = nil
+-- parses a string into char[hex bytecode]
+local function parse_codes(str)
+	return (str:gsub('.', function (c)
+		return string.format('[%02X]', string.byte(c))
+	end))
+end
 
 -------------------------------------------------------------------------------
 
@@ -59,12 +58,6 @@ balloon.initialize = function()
     end
 
 	balloon.apply_theme()
-
-    -- -- TODO TIMERS
-	-- --スレッド開始 (Thread start)
-	-- if settings.move_close then
-	-- 	balloon.movement_thread = moving_check:schedule(0)
-	-- end
 
 	if balloon.theme_options ~= nil then
         print(chat.header(addon.name):append(chat.message('Theme "%s", language: %s'):format(balloon.settings.theme, balloon.lang_code)))
@@ -122,49 +115,47 @@ balloon.close = function()
     balloon.close_timer = 0
 end
 
--- function moving_check()
---     local entity = AshitaCore:GetMemoryManager():GetEntity()
---     local party = AshitaCore:GetMemoryManager():GetParty()
---     local player = AshitaCore:GetMemoryManager():GetPlayer()
---     local index = party:GetMemberTargetIndex(0)
--- 	if player == nil then return end
+balloon.handle_player_movement = function(player_entity)
+    local new_player_pos = {
+        player_entity.Movement.LocalPosition.X,
+        player_entity.Movement.LocalPosition.Y,
+        player_entity.Movement.LocalPosition.Z,
+    }
 
--- 	local x,y
+    if balloon.settings.move_close then
+        if balloon.player_pos == nil then
+            balloon.close()
+        else
+            local moved = {
+                new_player_pos[1] - balloon.player_pos[1],
+                new_player_pos[2] - balloon.player_pos[2],
+                new_player_pos[3] - balloon.player_pos[3],
+            }
+            if moved[1] ~= 0 or moved[2] ~= 0 or moved[3] ~= 0 then
+                LogManager:Log(5, 'Balloon', 'Player moved: ' .. table.concat(moved, ', '))
+            end
+            for _, v in ipairs(moved) do
+                if math.abs(v) > balloon.move_check_sensitivity then
+                    balloon.close()
+                    break
+                end
+            end
+        end
+    end
 
--- 	while true do
--- 		-- me = windower.ffxi.get_mob_by_id(p.id)
--- 		-- if me ~= nil then
---         x = string.format('%6d',entity:GetLocalPositionX(index))
---         y = string.format('%6d',entity:GetLocalPositionY(index))
---         --if x ~= old_x and y ~= old_y then
---         if (tonumber(x) < tonumber(balloon.old_x) - 1 or tonumber(x) > tonumber(balloon.old_x) + 1) or (tonumber(y) < tonumber(balloon.old_y) - 1 or tonumber(y) > tonumber(balloon.old_y) + 1) then
---             balloon.moving = true
---             balloon.old_y = y
---             balloon.old_x = x
---         else
---             balloon.moving = false
---         end
--- 		-- end
--- 		--wait
--- 		balloon.waiting_to_close = true
--- 		coroutine.sleep(balloon.settings.no_prompt_close_delay)
--- 		if balloon.moving and balloon.settings.move_close and balloon.waiting_to_close then
--- 			close()
--- 		end
--- 	end
-
--- end
+    balloon.player_pos = new_player_pos
+end
 
 balloon.process_incoming_message = function(e)
     -- Obtain the chat mode..
     local mode = bit.band(e.mode_modified,  0x000000FF)
 
 	-- print debug info
-	if S{'mode', 'all'}[balloon.debug] then print('Mode: ' .. mode .. ' Text: ' .. e.message) end
+	if S{'mode', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'Mode: ' .. mode .. ' Text: ' .. e.message) end
 
 	-- skip text modes that aren't NPC speech
     if not S{chat_modes.message, chat_modes.system, chat_modes.timed_battle, chat_modes.timed_message}[mode] then
-        if S{'all'}[balloon.debug] then print(('Not accepted mode: %d'):format(mode)) end
+        if S{'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', ('Not accepted mode: %d'):format(mode)) end
         return
     end
 
@@ -176,7 +167,7 @@ balloon.process_incoming_message = function(e)
 	end
 
 	-- print debug info
-	-- if S{'codes', 'all'}[balloon.debug] then print('codes: ' .. codes(e.message)) end
+	if S{'codes', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'codes: ' .. parse_codes(e.message)) end
 
 	if balloon.settings.display_mode >= 1 then
 		e.message_modified = balloon.process_balloon(e.message_modified, mode)
@@ -193,7 +184,7 @@ balloon.process_balloon = function(message, mode)
 		timed = false
 	end
 
-	-- 発言者名の抽出 (Speaker name extraction)
+	-- Extract speaker name
 	local start, _end = message:find('.- : ')
 	local npc_prefix = ''
 	if start ~= nil then
@@ -234,25 +225,21 @@ balloon.process_balloon = function(message, mode)
 		-- end
 	end
 
-    -- if S{'chars', 'all'}[balloon.debug] then 
-        print('message: ' .. message)
-    -- end
-    if S{'codes', 'all'}[balloon.debug] then print('codes before: ' .. codes(message:sub(-4))) end
+    if S{'chars', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'message: ' .. message) end
+    if S{'codes', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'codes before: ' .. parse_codes(message:sub(-4))) end
 
-	-- 発言 (Remark)
-	message = SubCharactersPreShift(message)
-	message = encoding:ShiftJIS_To_UTF8(message)
-    message = SubCharactersPostShift(message)
+    -- Convert message to utf8
+	message = balloon.convert_shiftjis_to_utf8(message)
 
 	-- strip the NPC name from the start of the message
 	if npc_prefix ~= '' then
-		message = message:gsub(npc_prefix:gsub('-','--'),'') --タルタル等対応 (Correspondence such as tartar)
+		message = message:gsub(npc_prefix:gsub('-', '--'), '') --タルタル等対応 (Correspondence such as tartar)
 	end
 
-	if S{'process', 'all'}[balloon.debug] then print('Pre-process: ' .. message) end
-	if S{'codes', 'all'}[balloon.debug] then print('codes after: ' .. codes(message:sub(-4))) end
+	if S{'process', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'Pre-process: ' .. message) end
+	if S{'codes', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'codes after: ' .. parse_codes(message:sub(-4))) end
 
-    -- TODO: Check if this is necessary
+    -- TODO: Check if this is necessary (this was probably an issue with windower text color tags and opening with a \cr tag)
 	-- strip the default color code from the start of messages,
 	-- it causes the first part of the message to get cut off somehow
 	local default_color = chat_color_codes.standard
@@ -303,10 +290,8 @@ balloon.process_balloon = function(message, mode)
     message = message:gsub(string.char(0x07), '\n')
 
 
-    if S{'codes', 'all'}[balloon.debug] then print('codes end: ' .. codes(message:sub(-4))) end
-	-- if S{'process', 'all'}[balloon.debug] then 
-        print('Final: ' .. encoding:UTF8_To_ShiftJIS(message))
-    -- end
+    if S{'codes', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'codes end: ' .. parse_codes(message:sub(-4))) end
+	if S{'process', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'Final: ' .. encoding:UTF8_To_ShiftJIS(message)) end
 
 
     if not ui:set_character(npc_name) then
@@ -318,16 +303,17 @@ balloon.process_balloon = function(message, mode)
 	return result
 end
 
--- parses a string into char[hex bytecode]
-function codes(str)
-	return (str:gsub('.', function (c)
-		return string.format('[%02X]', string.byte(c))
-	end))
+balloon.convert_shiftjis_to_utf8 = function(str)
+    str = balloon.sub_chars_pre_utf8(str)
+	str = encoding:ShiftJIS_To_UTF8(str)
+    str = balloon.sub_chars_post_utf8(str)
+    return str
 end
 
-function SubCharactersPreShift(str)
+balloon.sub_chars_pre_utf8 = function(str)
 	local new_str = str
-	if S{'chars', 'all'}[balloon.debug] then print('Pre-charsub pre-shift: ' .. new_str) end
+	if S{'chars', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'Pre-charsub pre-shift: ' .. new_str) end
+
 	new_str = string.gsub(new_str, string.char(0x81, 0x40), '    ') -- tab
 	new_str = string.gsub(new_str, string.char(0x81, 0xF4), '[BL_note]') -- musical note
 	new_str = string.gsub(new_str, string.char(0x81, 0x99), '[BL_bstar]') -- empty star
@@ -347,13 +333,15 @@ function SubCharactersPreShift(str)
 	new_str = string.gsub(new_str, string.char(0xEF,0x25,0x24), '[BL_Water]')
 	new_str = string.gsub(new_str, string.char(0xEF,0x25,0x25), '[BL_Light]')
 	new_str = string.gsub(new_str, string.char(0xEF,0x26), '[BL_Dark]')
-	if S{'chars', 'all'}[balloon.debug] then print('Post-charsub pre-shift: ' .. new_str) end
+
+	if S{'chars', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'Post-charsub pre-shift: ' .. new_str) end
 	return new_str
 end
 
-function SubCharactersPostShift(str)
+balloon.sub_chars_post_utf8 = function(str)
 	local new_str = str
-	if S{'chars', 'all'}[balloon.debug] then print('Pre-charsub post-shift: ' .. new_str) end
+	if S{'chars', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'Pre-charsub post-shift: ' .. new_str) end
+
 	new_str = string.gsub(new_str, '%[BL_note]', '♪')
 	new_str = string.gsub(new_str, '%[BL_bstar]', '☆')
 	new_str = string.gsub(new_str, '%[BL_wstar]', '★')
@@ -361,7 +349,8 @@ function SubCharactersPostShift(str)
 	new_str = string.gsub(new_str, '%[BL_cldquote]', '“')
 	new_str = string.gsub(new_str, '%[BL_crdquote]', '”')
 	new_str = string.gsub(new_str, '%[BL_e_acute]', 'é')
-	if S{'chars', 'all'}[balloon.debug] then print('Post-charsub post-shift: ' .. new_str) end
+
+	if S{'chars', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'Post-charsub post-shift: ' .. new_str) end
 	return new_str
 end
 
@@ -434,7 +423,7 @@ ashita.events.register('command', 'balloon_command_cb', function(e)
         if #args > 2 then
             local old_theme = balloon.settings.theme
             local old_theme_options = balloon.theme_options
-            
+
             balloon.settings.theme = args[3]
 
             balloon.apply_theme()
@@ -498,7 +487,7 @@ ashita.events.register('command', 'balloon_command_cb', function(e)
     -- Handle toggle options
     -- Handle: /balloon portrait
     -- Handle: /balloon move_closes
-    if (#args == 2 and args[2]:any('portrait', 'move_closes')) then
+    if (#args == 2 and args[2]:any('portrait', 'portraits', 'move_closes', 'move_close')) then
         local setting_key_alias = {
             portrait = 'portraits',
             move_closes = 'move_close',
@@ -510,20 +499,16 @@ ashita.events.register('command', 'balloon_command_cb', function(e)
         local setting_key = setting_key_alias[args[2]] or args[2]
         local setting_name = setting_names[setting_key] or args[2]
 
-        if #args > 2 then
-            local old_val = balloon.settings[setting_key]
-			balloon.settings[setting_key] = not balloon.settings[setting_key]
+        local old_val = balloon.settings[setting_key]
+        balloon.settings[setting_key] = not old_val
 
-            -- Some additional logic we need to run depending on the setting change
-            if setting_key == 'portraits' then
-                balloon.apply_theme()
-            end
+        -- Some additional logic we need to run depending on the setting change
+        if setting_key == 'portraits' then
+            balloon.apply_theme()
+        end
 
-            print(chat.header(addon.name):append(chat.message('%s changed: '):format(setting_name)):append(chat.success(balloon.settings[setting_key] and 'on' or 'off')))
-            settings.save()
-		else
-			print(chat.header(addon.name):append(chat.message('%s: '):format(setting_name)):append(chat.success(balloon.settings[setting_key] and 'on' or 'off')))
-		end
+        print(chat.header(addon.name):append(chat.message('%s changed: '):format(setting_name)):append(chat.success(balloon.settings[setting_key] and 'on' or 'off')))
+        settings.save()
         return
     end
 
@@ -579,14 +564,13 @@ ashita.events.register('load', 'balloon_load', function()
         if (s ~= nil) then
             balloon.settings = s
         end
-    
+
         settings.save()
         balloon.initialize()
     end)
 end)
 
 ashita.events.register('unload', 'balloon_unload', function()
-    -- print('balloon.unload')
     ui:destroy()
 end)
 
@@ -595,9 +579,9 @@ ashita.events.register('packet_in', 'balloon_packet_in', function(e)
         return
     end
 
-	-- if S{'chunk', 'all'}[balloon.debug] then print('Chunk: ' .. string.format('0x%02X', e.id) .. ' original: ' .. e.data_modified) end
+	if S{'chunk', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'Chunk: ' .. string.format('0x%02X', e.id) .. ' original: ' .. e.data_modified) end
 
-	--会話中かの確認 (Check if you have left a conversation)
+	-- Check if player has left a conversation
 	if S{defines.LEAVE_CONVERSATION_PACKET, defines.ZONE_OUT_PACKET}[e.id] then
 		balloon.close()
 	end
@@ -638,29 +622,13 @@ ashita.events.register('d3d_present', 'balloon_d3d_present', function()
 		return
 	end
 
+    -- Handle movement closes balloon
+    balloon.handle_player_movement(player_ent)
+
     if not ui:hidden() then
         ui:render(delta_time)
     end
 end)
-
--- windower.register_event('keyboard',function(key_id,pressed,flags,blocked)
--- 	if windower.ffxi.get_info().chat_open or blocked then return end
--- 	if not ui:hidden() then
--- 		if key_id == ENTER_KEY and pressed and not balloon.keydown then
--- 			balloon.keydown = true
--- 			close()
--- 		end
--- 		if key_id == SCROLL_LOCK_KEY and pressed and not balloon.keydown then
--- 			balloon.keydown = true
--- 			if not ui:hidden() then
--- 				ui:hide()
--- 			else
--- 				ui:show()
--- 			end
--- 		end
--- 	end
--- 	if S{ENTER_KEY, SCROLL_LOCK_KEY}[key_id] and not pressed then balloon.keydown = false end
--- end)
 
 -- windower.register_event('mouse',function(type,x,y,delta,blocked)
 --     if not ui.message_background:hover(x, y) then return false end

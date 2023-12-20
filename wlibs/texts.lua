@@ -651,6 +651,10 @@ function texts.alpha(t, alpha)
     meta[t].font_object:set_font_color(d3d.D3DCOLOR_ARGB(meta[t].settings.text.alpha, meta[t].settings.text.red, meta[t].settings.text.green, meta[t].settings.text.blue))
 end
 
+function texts.set_clip_range(t, clip_start, clip_end)
+    meta[t].font_object:set_clip_range(clip_start, clip_end)
+end
+
 -- Sets/returns text transparency. Based on percentage values, with 1 being fully transparent, while 0 is fully opaque.
 function texts.transparency(t, transparency)
     if not transparency then

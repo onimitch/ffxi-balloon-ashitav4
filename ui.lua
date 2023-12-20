@@ -332,7 +332,6 @@ function ui:show(timed)
 end
 
 function ui:set_type(type)
-    -- print('ui:set_type: "' .. type .. '"')
     local types = {
         --[190] = self._system_settings, -- system text (always a duplicate of 151?)
         [150] = self._dialogue_settings, -- npc text
@@ -346,11 +345,13 @@ function ui:set_type(type)
 
     self:update_message_bg(self._type.path)
     self.message_text:alpha(self._type.color.alpha)
-    if type == 15 then
-        local emote_col = self._system_settings.emote:split(',')
-        self.message_text:color(tonumber(emote_col[1]), tonumber(emote_col[2]), tonumber(emote_col[3]))
-    else
-        self.message_text:color(self._type.color.red, self._type.color.green, self._type.color.blue)
+    self.message_text:color(self._type.color.red, self._type.color.green, self._type.color.blue)
+
+    if type == 15 and self._type.emote ~= nil then
+        local emote_col = self._type.emote:split(',')
+        if #emote_col == 3 then
+            self.message_text:color(tonumber(emote_col[1]), tonumber(emote_col[2]), tonumber(emote_col[3]))
+        end
     end
     self.message_text:stroke_transparency(self._type.stroke.alpha)
     self.message_text:stroke_color(self._type.stroke.red, self._type.stroke.green, self._type.stroke.blue)
@@ -358,7 +359,7 @@ function ui:set_type(type)
 end
 
 function ui:set_character(name)
-    self.name_text:text(' '..name)
+    self.name_text:text(name)
 
     local zone_id = tonumber(AshitaCore:GetMemoryManager():GetParty():GetMemberZone(0))
     local zone_name = AshitaCore:GetResourceManager():GetString("zones.names", zone_id)
@@ -441,14 +442,17 @@ function ui:wrap_text(str)
 end
 
 function ui:set_message(message)
+    message = message or ''
     self._current_text = message
+    self._char_length = utf8.len(message)
+    self.message_text:text(message)
 
-    if self._text_speed <= 0 then
-        self._chars_shown = #message
-        self.message_text:text(message)
+    if self._text_speed <= 0 or message == '' then
+        self._chars_shown = self._char_length
+        self.message_text:set_clip_range(nil)
     else
-        self._chars_shown = 0
-        self.message_text:text('')
+        self._chars_shown = 1
+        self.message_text:set_clip_range(1,1)
     end
 
     -- this is here to update the layout depending if there's a portrait or not
@@ -478,13 +482,16 @@ function ui:animate_prompt(delta_time)
 end
 
 function ui:animate_text_display(char_count)
-    local text_length = #self._current_text
-    if self._chars_shown >= text_length then
+    if self._chars_shown >= self._char_length then
         return
     end
 
-    self._chars_shown = math.min(text_length, self._chars_shown + char_count)
-    self.message_text:text(self._current_text:sub(0, self._chars_shown))
+    self._chars_shown = math.min(self._char_length, self._chars_shown + char_count)
+    if self._chars_shown == self._char_length then
+        self.message_text:set_clip_range(nil)
+    else
+        self.message_text:set_clip_range(1, math.ceil(self._chars_shown))
+    end
 end
 
 function ui:hidden()
@@ -520,7 +527,7 @@ function ui:render(delta_time)
     if (self._sprite == nil) then return end
 
     self:animate_prompt(delta_time)
-    self:animate_text_display(math.ceil(self._text_speed * delta_time))
+    self:animate_text_display(self._text_speed * delta_time)
 
     local sprite = self._sprite
 
