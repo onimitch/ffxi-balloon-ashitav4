@@ -7,12 +7,13 @@ addon.link      = 'https://github.com/onimitch/ffxi-balloon-ashitav4'
 -- Ashita libs
 require('common')
 local chat = require('chat')
-settings = require('settings')
+local settings = require('settings')
 local encoding = require('gdifonts.encoding')
 
 -- Windower lua libs
 texts = require('wlibs.texts')
 images = require('wlibs.images')
+local packets = require('wlibs.packets')
 require('wlibs.sets')
 
 -- Balloon files
@@ -27,7 +28,7 @@ local chat_modes = defines.chat_modes
 local chat_color_codes = defines.chat_color_codes
 
 local balloon = {
-    debug = 'off',
+    debug = 'chunk',
     waiting_to_close = false,
     close_timer = 0,
     last_text = '',
@@ -38,6 +39,8 @@ local balloon = {
     last_frame_time = 0,
     theme_options = nil,
     move_check_sensitivity = 0.01,
+    in_mog_menu = false,
+    in_hp_menu = 0,
 }
 
 -- parses a string into char[hex bytecode]
@@ -82,12 +85,16 @@ balloon.apply_theme = function()
 end
 
 balloon.update_timer = function()
+    if not balloon.waiting_to_close then
+        return
+    end
     if balloon.close_timer >= 0 then
         balloon.close_timer = math.max(0, balloon.close_timer - 1)
         ui.timer_text:text(balloon.close_timer..'')
     end
 
     if balloon.close_timer <= 0 then
+        print('close because: close_timer')
         balloon.close()
     else
         ashita.tasks.once(1, balloon.update_timer)
@@ -98,6 +105,9 @@ balloon.open = function(timed)
 	if timed then
 		balloon.close_timer = balloon.settings.no_prompt_close_delay
 		ui.timer_text:text(''..balloon.close_timer)
+    else 
+        balloon.close_timer = 0
+        balloon.waiting_to_close = false
 	end
 
 	ui:show(timed)
@@ -111,8 +121,12 @@ end
 balloon.close = function()
 	ui:hide()
 
+    -- print('close')
+
     balloon.waiting_to_close = false
     balloon.close_timer = 0
+    balloon.in_mog_menu = false
+    balloon.in_hp_menu = 0
 end
 
 balloon.handle_player_movement = function(player_entity)
@@ -122,8 +136,9 @@ balloon.handle_player_movement = function(player_entity)
         player_entity.Movement.LocalPosition.Z,
     }
 
-    if balloon.settings.move_close then
+    if not ui:hidden() and balloon.settings.move_close then
         if balloon.player_pos == nil then
+            print('close because: nil player pos')
             balloon.close()
         else
             local moved = {
@@ -131,11 +146,12 @@ balloon.handle_player_movement = function(player_entity)
                 new_player_pos[2] - balloon.player_pos[2],
                 new_player_pos[3] - balloon.player_pos[3],
             }
-            if moved[1] ~= 0 or moved[2] ~= 0 or moved[3] ~= 0 then
-                LogManager:Log(5, 'Balloon', 'Player moved: ' .. table.concat(moved, ', '))
-            end
+            -- if moved[1] ~= 0 or moved[2] ~= 0 or moved[3] ~= 0 then
+            --     LogManager:Log(5, 'Balloon', 'Player moved: ' .. table.concat(moved, ', '))
+            -- end
             for _, v in ipairs(moved) do
                 if math.abs(v) > balloon.move_check_sensitivity then
+                    print('close because: player moved')
                     balloon.close()
                     break
                 end
@@ -180,7 +196,8 @@ balloon.process_balloon = function(message, mode)
 
 	-- detect whether messages have a prompt button
 	local timed = true
-	if S{chat_modes.message, chat_modes.system}[mode] and message:sub(-#defines.PROMPT_CHARS) == defines.PROMPT_CHARS then
+	if (S{chat_modes.message, chat_modes.system}[mode] and message:sub(-#defines.PROMPT_CHARS) == defines.PROMPT_CHARS)
+        or balloon.in_mog_menu or balloon.in_hp_menu > 0 then
 		timed = false
 	end
 
@@ -237,7 +254,7 @@ balloon.process_balloon = function(message, mode)
 	end
 
 	if S{'process', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'Pre-process: ' .. message) end
-	if S{'codes', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'codes after: ' .. parse_codes(message:sub(-4))) end
+	if S{'codes', 'chunk', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'codes after: ' .. parse_codes(message:sub(-4))) end
 
     -- TODO: Check if this is necessary (this was probably an issue with windower text color tags and opening with a \cr tag)
 	-- strip the default color code from the start of messages,
@@ -291,7 +308,7 @@ balloon.process_balloon = function(message, mode)
 
 
     if S{'codes', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'codes end: ' .. parse_codes(message:sub(-4))) end
-	if S{'process', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'Final: ' .. encoding:UTF8_To_ShiftJIS(message)) end
+	if S{'process', 'chunk', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'Final: ' .. encoding:UTF8_To_ShiftJIS(message)) end
 
 
     if not ui:set_character(npc_name) then
@@ -579,11 +596,75 @@ ashita.events.register('packet_in', 'balloon_packet_in', function(e)
         return
     end
 
-	if S{'chunk', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'Chunk: ' .. string.format('0x%02X', e.id) .. ' original: ' .. e.data_modified) end
-
 	-- Check if player has left a conversation
-	if S{defines.LEAVE_CONVERSATION_PACKET, defines.ZONE_OUT_PACKET}[e.id] then
-		balloon.close()
+	if S{defines.ZONE_OUT_PACKET, defines.LEAVE_CONVERSATION_PACKET}[e.id] then
+        if balloon.in_hp_menu > 1 then
+            balloon.in_hp_menu = balloon.in_hp_menu - 1
+        else
+            -- print('close because: ' .. string.format('0x%.3X', e.id))
+		    balloon.close()
+        end
+	end
+
+    if e.id == defines.MOG_MENU_PACKET then
+        balloon.in_mog_menu = true
+    end
+
+    if S{'chunk', 'all'}[balloon.debug] then
+        if S{defines.NPC_INTERACTION2_PACKET, defines.LEAVE_CONVERSATION_PACKET}[e.id] then
+            LogManager:Log(5, 'Balloon', 'Packet In: ' .. string.format('0x%.3X', e.id))
+            local packet_data = packets.parse('incoming', e.data)
+            local debug_msg = 'Incoming Packet: ' .. string.format('0x%.3X', e.id)
+            for k, v in pairs(packet_data) do
+                if k ~= '_data' and k ~= '_raw' then
+                    debug_msg = debug_msg .. '\n' .. ('%s: %s'):format(k, (k == '_data' or k == '_raw') and parse_codes(v) or tostring(v))
+                end
+            end
+            LogManager:Log(5, 'Balloon', debug_msg)
+        elseif S{0x00E, 0x038, 0x00D, 0x01D, 0x067, 0x017, 0x070, 0x06F, 0x020, 0x063, 0x026}[e.id] == nil then
+            LogManager:Log(5, 'Balloon', 'Packet In: ' .. string.format('0x%.3X', e.id))
+        end
+    end
+end)
+
+ashita.events.register('packet_out', 'balloon_packet_out', function (e)
+    if balloon.theme_options == nil then
+        return
+    end
+
+    if S{'chunk', 'all'}[balloon.debug] then
+        if S{defines.DIALOGUE_OPTION_PACKET, defines.ACTION_PACKET}[e.id] then
+            LogManager:Log(5, 'Balloon', 'Packet Out: ' .. string.format('0x%.3X', e.id))
+            local packet_data = packets.parse('outgoing', e.data)
+            local debug_msg = 'Outgoing Packet: ' .. string.format('0x%.3X', e.id)
+            for k, v in pairs(packet_data) do
+                if k ~= '_data' and k ~= '_raw' then
+                    debug_msg = debug_msg .. '\n' .. ('%s: %s'):format(k, (k == '_data' or k == '_raw') and parse_codes(v) or tostring(v))
+                end
+            end
+            LogManager:Log(5, 'Balloon', debug_msg)
+        elseif S{0x15, 0x16}[e.id] == nil then
+            LogManager:Log(5, 'Balloon', 'Packet Out: ' .. string.format('0x%.3X', e.id))
+        end
+    end
+
+    -- Check if player has left a conversation
+    -- Since this is outgoing, this comes sooner than the incoming LEAVE_CONVERSATION_PACKET
+	if e.id == defines.DIALOGUE_OPTION_PACKET then
+        local packet_data = packets.parse('outgoing', e.data)
+        local option_index = packet_data['Option Index']
+        print('option_index: ' .. option_index)
+        if option_index == 0 then
+            -- ended dialogue
+		    balloon.close()
+        elseif option_index == 2 then
+            -- selected a home point warp
+            balloon.close()
+        elseif option_index == 8 then
+            -- opened home point warp menu
+            balloon.in_hp_menu = 2
+            -- print('in_hp_menu')
+        end
 	end
 end)
 

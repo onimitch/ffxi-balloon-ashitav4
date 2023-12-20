@@ -32,8 +32,13 @@ defines.chat_modes = T{
     cutscene_emote = 15,
 }
 
-defines.ZONE_OUT_PACKET = 0x0B
-defines.LEAVE_CONVERSATION_PACKET = 0x52
+defines.ZONE_OUT_PACKET = 0x00B
+defines.LEAVE_CONVERSATION_PACKET = 0x052
+defines.MOG_MENU_PACKET = 0x02E
+defines.NPC_INTERACTION2_PACKET = 0x034
+
+defines.ACTION_PACKET = 0x01A
+defines.DIALOGUE_OPTION_PACKET = 0x05B
 
 -- 0x31-0x33 and 0x37 all appear the same
 defines.PROMPT_CHARS = string.char(0x7F,0x31)
