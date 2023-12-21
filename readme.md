@@ -33,6 +33,8 @@ You can use `/balloon` or `/bl`
 
 `/balloon reset` - Reset all settings back to default.
 
+`/balloon reset pos` - Reset the balloon position.
+
 `/balloon theme <theme>` - Switch theme (see below for info on Themes).
 
 `/balloon scale <scale>` - Scales the size of the balloon by a decimal (eg: 1.5).

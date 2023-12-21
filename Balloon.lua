@@ -377,6 +377,7 @@ local function print_help(isError)
         { '/balloon 1', 'Show balloon & hide log.' },
         { '/balloon 2', 'Show balloon & displaying log.' },
         { '/balloon reset', 'Reset to default settings.' },
+        { '/balloon reset pos', 'Reset the balloon position.' },
         { '/balloon theme <theme>', 'Loads the specified theme.' },
         { '/balloon scale <scale>', 'Scales the size of the balloon by a decimal (eg: 1.5).' },
         { '/balloon delay <seconds>', 'Delay before closing promptless balloons.' },
