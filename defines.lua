@@ -32,13 +32,22 @@ defines.chat_modes = T{
     cutscene_emote = 15,
 }
 
-defines.ZONE_OUT_PACKET = 0x00B
-defines.LEAVE_CONVERSATION_PACKET = 0x052
-defines.MOG_MENU_PACKET = 0x02E
-defines.NPC_INTERACTION2_PACKET = 0x034
-
-defines.ACTION_PACKET = 0x01A
-defines.DIALOGUE_OPTION_PACKET = 0x05B
+defines.packets = {
+    inc = {
+        zone_update = 0x00A,
+        zone_out = 0x00B,
+        leave_conversation = 0x052,
+        mog_menu = 0x02E,
+        npc_interact1a = 0x032,
+        npc_interact1b = 0x033,
+        npc_interact2 = 0x034,
+    },
+    out = {
+        action = 0x01A,
+        dialogue_option = 0x05B,
+        homepoint_map = 0x114,
+    },
+}
 
 -- 0x31-0x33 and 0x37 all appear the same
 defines.PROMPT_CHARS = string.char(0x7F,0x31)
@@ -54,6 +63,9 @@ defines.STRIP_PROMPT_CHARS = {
     string.char(0x7F,0x35),
     string.char(0x7F,0x36),
 }
+
+defines.MOUSE_DOWN = 513
+defines.MOUSE_UP = 514
 
 
 return defines

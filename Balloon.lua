@@ -13,7 +13,6 @@ local encoding = require('gdifonts.encoding')
 -- Windower lua libs
 texts = require('wlibs.texts')
 images = require('wlibs.images')
-local packets = require('wlibs.packets')
 require('wlibs.sets')
 
 -- Balloon files
@@ -40,7 +39,8 @@ local balloon = {
     theme_options = nil,
     move_check_sensitivity = 0.01,
     in_mog_menu = false,
-    in_hp_menu = 0,
+    in_menu = false,
+    drag_offset = nil,
 }
 
 -- parses a string into char[hex bytecode]
@@ -94,7 +94,6 @@ balloon.update_timer = function()
     end
 
     if balloon.close_timer <= 0 then
-        print('close because: close_timer')
         balloon.close()
     else
         ashita.tasks.once(1, balloon.update_timer)
@@ -121,12 +120,10 @@ end
 balloon.close = function()
 	ui:hide()
 
-    -- print('close')
-
     balloon.waiting_to_close = false
     balloon.close_timer = 0
     balloon.in_mog_menu = false
-    balloon.in_hp_menu = 0
+    balloon.in_menu = false
 end
 
 balloon.handle_player_movement = function(player_entity)
@@ -138,7 +135,6 @@ balloon.handle_player_movement = function(player_entity)
 
     if not ui:hidden() and balloon.settings.move_close then
         if balloon.player_pos == nil then
-            print('close because: nil player pos')
             balloon.close()
         else
             local moved = {
@@ -146,12 +142,8 @@ balloon.handle_player_movement = function(player_entity)
                 new_player_pos[2] - balloon.player_pos[2],
                 new_player_pos[3] - balloon.player_pos[3],
             }
-            -- if moved[1] ~= 0 or moved[2] ~= 0 or moved[3] ~= 0 then
-            --     LogManager:Log(5, 'Balloon', 'Player moved: ' .. table.concat(moved, ', '))
-            -- end
             for _, v in ipairs(moved) do
                 if math.abs(v) > balloon.move_check_sensitivity then
-                    print('close because: player moved')
                     balloon.close()
                     break
                 end
@@ -166,7 +158,7 @@ balloon.process_incoming_message = function(e)
     -- Obtain the chat mode..
     local mode = bit.band(e.mode_modified,  0x000000FF)
 
-	-- print debug info
+	-- log debug info
 	if S{'mode', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'Mode: ' .. mode .. ' Text: ' .. e.message) end
 
 	-- skip text modes that aren't NPC speech
@@ -182,7 +174,7 @@ balloon.process_incoming_message = function(e)
 		return
 	end
 
-	-- print debug info
+	-- log debug info
 	if S{'codes', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'codes: ' .. parse_codes(e.message)) end
 
 	if balloon.settings.display_mode >= 1 then
@@ -197,7 +189,7 @@ balloon.process_balloon = function(message, mode)
 	-- detect whether messages have a prompt button
 	local timed = true
 	if (S{chat_modes.message, chat_modes.system}[mode] and message:sub(-#defines.PROMPT_CHARS) == defines.PROMPT_CHARS)
-        or balloon.in_mog_menu or balloon.in_hp_menu > 0 then
+        or balloon.in_mog_menu or balloon.in_menu then
 		timed = false
 	end
 
@@ -250,7 +242,7 @@ balloon.process_balloon = function(message, mode)
 
 	-- strip the NPC name from the start of the message
 	if npc_prefix ~= '' then
-		message = message:gsub(npc_prefix:gsub('-', '--'), '') --タルタル等対応 (Correspondence such as tartar)
+		message = message:gsub(npc_prefix:gsub('-', '--'), '')
 	end
 
 	if S{'process', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'Pre-process: ' .. message) end
@@ -430,8 +422,16 @@ ashita.events.register('command', 'balloon_command_cb', function(e)
     end
 
     -- Handle: /balloon reset
-    if (#args == 2 and args[2]:any('reset')) then
-        settings.reset()
+    if (#args >= 2 and args[2]:any('reset')) then
+        if #args >= 3 and args[3]:any('pos', 'position') then
+            print(chat.header(addon.name):append(chat.message('Resetting position')))
+            balloon.settings.position.x = default_settings.position.x
+            balloon.settings.position.y = default_settings.position.y
+            settings.save()
+            ui:position(balloon.settings.position.x, balloon.settings.position.y)
+        else
+            settings.reset()
+        end
         return
     end
 
@@ -577,12 +577,12 @@ ashita.events.register('load', 'balloon_load', function()
     balloon.initialize()
 
     -- Register for future settings updates
-    settings.register('settings', 'balloon_settings_update', function()
+    settings.register('settings', 'balloon_settings_update', function(s)
         if (s ~= nil) then
             balloon.settings = s
         end
 
-        settings.save()
+        --settings.save()
         balloon.initialize()
     end)
 end)
@@ -597,33 +597,17 @@ ashita.events.register('packet_in', 'balloon_packet_in', function(e)
     end
 
 	-- Check if player has left a conversation
-	if S{defines.ZONE_OUT_PACKET, defines.LEAVE_CONVERSATION_PACKET}[e.id] then
-        if balloon.in_hp_menu > 1 then
-            balloon.in_hp_menu = balloon.in_hp_menu - 1
-        else
-            -- print('close because: ' .. string.format('0x%.3X', e.id))
-		    balloon.close()
+	if e.id == defines.packets.inc.zone_out then
+		balloon.close()
+    elseif e.id == defines.packets.inc.leave_conversation then
+        local type = struct.unpack('b', e.data_modified, 0x04 + 1)
+        LogManager:Log(5, 'Balloon', 'packets.inc.leave_conversation - type: ' .. tostring(type))
+        if tonumber(type) == 0 then
+            balloon.close()
         end
-	end
-
-    if e.id == defines.MOG_MENU_PACKET then
-        balloon.in_mog_menu = true
-    end
-
-    if S{'chunk', 'all'}[balloon.debug] then
-        if S{defines.NPC_INTERACTION2_PACKET, defines.LEAVE_CONVERSATION_PACKET}[e.id] then
-            LogManager:Log(5, 'Balloon', 'Packet In: ' .. string.format('0x%.3X', e.id))
-            local packet_data = packets.parse('incoming', e.data)
-            local debug_msg = 'Incoming Packet: ' .. string.format('0x%.3X', e.id)
-            for k, v in pairs(packet_data) do
-                if k ~= '_data' and k ~= '_raw' then
-                    debug_msg = debug_msg .. '\n' .. ('%s: %s'):format(k, (k == '_data' or k == '_raw') and parse_codes(v) or tostring(v))
-                end
-            end
-            LogManager:Log(5, 'Balloon', debug_msg)
-        elseif S{0x00E, 0x038, 0x00D, 0x01D, 0x067, 0x017, 0x070, 0x06F, 0x020, 0x063, 0x026}[e.id] == nil then
-            LogManager:Log(5, 'Balloon', 'Packet In: ' .. string.format('0x%.3X', e.id))
-        end
+	elseif e.id == defines.packets.inc.mog_menu then
+        -- Disabled for now until we can handle closing mog menu better
+        --balloon.in_mog_menu = true
     end
 end)
 
@@ -632,40 +616,27 @@ ashita.events.register('packet_out', 'balloon_packet_out', function (e)
         return
     end
 
-    if S{'chunk', 'all'}[balloon.debug] then
-        if S{defines.DIALOGUE_OPTION_PACKET, defines.ACTION_PACKET}[e.id] then
-            LogManager:Log(5, 'Balloon', 'Packet Out: ' .. string.format('0x%.3X', e.id))
-            local packet_data = packets.parse('outgoing', e.data)
-            local debug_msg = 'Outgoing Packet: ' .. string.format('0x%.3X', e.id)
-            for k, v in pairs(packet_data) do
-                if k ~= '_data' and k ~= '_raw' then
-                    debug_msg = debug_msg .. '\n' .. ('%s: %s'):format(k, (k == '_data' or k == '_raw') and parse_codes(v) or tostring(v))
-                end
-            end
-            LogManager:Log(5, 'Balloon', debug_msg)
-        elseif S{0x15, 0x16}[e.id] == nil then
-            LogManager:Log(5, 'Balloon', 'Packet Out: ' .. string.format('0x%.3X', e.id))
-        end
-    end
-
     -- Check if player has left a conversation
     -- Since this is outgoing, this comes sooner than the incoming LEAVE_CONVERSATION_PACKET
-	if e.id == defines.DIALOGUE_OPTION_PACKET then
-        local packet_data = packets.parse('outgoing', e.data)
-        local option_index = packet_data['Option Index']
-        print('option_index: ' .. option_index)
-        if option_index == 0 then
-            -- ended dialogue
-		    balloon.close()
-        elseif option_index == 2 then
-            -- selected a home point warp
+	if e.id == defines.packets.out.dialogue_option then
+        local in_menu = struct.unpack('H', e.data_modified, 0x0E + 1)
+        local option_index = struct.unpack('H', e.data_modified, 0x08 + 1)
+
+        if in_menu == 1 then
+            balloon.in_menu = true
+        else --if option_index ~= 2 then -- 2 = selected a home point warp
             balloon.close()
-        elseif option_index == 8 then
-            -- opened home point warp menu
-            balloon.in_hp_menu = 2
-            -- print('in_hp_menu')
         end
+
+        LogManager:Log(5, 'Balloon', 'packets.out.dialogue_option - option_index: ' .. tostring(option_index) .. ', in_menu: ' .. tostring(in_menu))
 	end
+
+    if e.id == defines.packets.out.homepoint_map then
+        -- User is viewing home point map
+        balloon.close()
+        -- We're still in the menu
+        balloon.in_menu = true
+    end
 end)
 
 ashita.events.register('text_in', 'balloon_text_in', function(e)
@@ -711,26 +682,39 @@ ashita.events.register('d3d_present', 'balloon_d3d_present', function()
     end
 end)
 
--- windower.register_event('mouse',function(type,x,y,delta,blocked)
---     if not ui.message_background:hover(x, y) then return false end
+ashita.events.register('mouse', 'balloon_mouse', function (e)
+    if ui:hidden() then
+        return
+    end
 
--- 	-- press
--- 	if type == 1 then
--- 		balloon.mouse_on = true
--- 	end
--- 	-- release
--- 	if type == 2 then
--- 		balloon.mouse_on = false
--- 		config.save(settings)
--- 	end
--- 	if balloon.mouse_on == true then
--- 		update_position()
--- 	end
--- end)
+    if e.message == defines.MOUSE_DOWN then
+        local ui_x, ui_y = ui:position()
+        local w, h = ui:window_size()
+        local mouse_x, mouse_y = e.x, e.y
 
--- function update_position()
--- 	settings.Position.X = ui.message_background:pos_x() + ui.message_background:width() / 2
--- 	settings.Position.Y = ui.message_background:pos_y() + ui.message_background:height() / 2
+        -- Mouse click inside balloon?
+        if mouse_x >= ui_x and mouse_x <= ui_x + w and
+           mouse_y >= ui_y and mouse_y <= ui_y + h then
+            balloon.drag_offset = {
+                ui_x - mouse_x,
+                ui_y - mouse_y,
+            }
+            e.blocked = true
+        end
+    elseif balloon.drag_offset ~= nil then
+        e.blocked = true
+        if e.message == defines.MOUSE_UP then
+            ui:position(e.x + balloon.drag_offset[1], e.y + balloon.drag_offset[2], true)
 
--- 	ui:position(settings.Position.X, settings.Position.Y)
--- end
+            -- Convert to center anchor for saving to settings
+            local w, h = ui:window_size()
+            balloon.settings.position.x = balloon.drag_offset[1] + w / 2
+            balloon.settings.position.y = balloon.drag_offset[2] + h / 2
+            settings.save()
+
+            balloon.drag_offset = nil
+        else
+            ui:position(e.x + balloon.drag_offset[1], e.y + balloon.drag_offset[2], true)
+        end
+    end
+end)

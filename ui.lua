@@ -210,14 +210,23 @@ function ui:text_speed(speed)
     self._text_speed = speed
 end
 
-function ui:position(x_pos, y_pos)
-    local center_offset_x = self._theme_options.message.width / 2
-    local center_offset_y = self._theme_options.message.height / 2
+function ui:window_size()
+    return self._theme_options.message.width * self._scale, self._theme_options.message.height * self._scale
+end
 
-    x_pos = x_pos or self.message_background:pos_x() + center_offset_x * self._scale
-    y_pos = y_pos or self.message_background:pos_y() + center_offset_y * self._scale
-    local x = x_pos - center_offset_x * self._scale
-    local y = y_pos - center_offset_y * self._scale
+function ui:position(x, y, topleft_anchor)
+    if x == nil then
+        return self.message_background:pos_x(), self.message_background:pos_y()
+    end
+
+    topleft_anchor = topleft_anchor or false
+
+    if not topleft_anchor then
+        local center_offset_x = self._theme_options.message.width / 2
+        x = x - center_offset_x * self._scale
+        local center_offset_y = self._theme_options.message.height / 2
+        y = y - center_offset_y * self._scale
+    end
 
     local name_bg_offset_x = self._theme_options.name.background_offset_x * self._scale
     local name_bg_offset_y = self._theme_options.name.background_offset_y * self._scale
@@ -456,7 +465,7 @@ function ui:set_message(message)
     end
 
     -- this is here to update the layout depending if there's a portrait or not
-    self:position()
+    self:position(self.message_background:pos_x(), self.message_background:pos_y(), true)
 end
 
 local function smooth_sawtooth(time, frequency)
