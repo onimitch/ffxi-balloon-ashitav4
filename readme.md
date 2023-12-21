@@ -59,7 +59,7 @@ There are currently four themes bundled with the addon.
 
 ### ffvii-r
 
-Requires "Libre Franklin Medium" or "Libre Franklin Regular" font, which you can get free from [Google Fonts](https://fonts.google.com/specimen/Libre+Franklin).
+Requires "Libre Franklin Medium" or "Libre Franklin Regular" font, which you can get free from [Google Fonts](https://fonts.google.com/specimen/Libre+Franklin). Install the font in Windows.
 
 ![Example ffvii-r](https://github.com/onimitch/ffxi-balloon-ashitav4/blob/main/Example-ffvii-r.png "Example ffvii-r")
 
@@ -69,8 +69,9 @@ Requires "Libre Franklin Medium" or "Libre Franklin Regular" font, which you can
 
 ### snes-ff
 
-Uses DotGothic16 font, which you can get free from [Google Fonts](https://fonts.google.com/specimen/DotGothic16).
-Alternatively you can use DePixel font, which you can get free from [Be Fonts](https://befonts.com/depixel-font-family.html).
+Uses "DotGothic16" font, which you can get free from [Google Fonts](https://fonts.google.com/specimen/DotGothic16). Install the font in Windows.
+
+Alternatively it will look for "DePixel" font if "DotGothic16" not installed, which you can get free from [Be Fonts](https://befonts.com/depixel-font-family.html).
 
 ![Example snes-ff](https://github.com/onimitch/ffxi-balloon-ashitav4/blob/main/Example-snes-ff.png "Example snes-ff")
 
