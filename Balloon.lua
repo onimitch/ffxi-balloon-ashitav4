@@ -574,16 +574,14 @@ ashita.events.register('load', 'balloon_load', function()
     balloon.settings = settings.load(default_settings)
     balloon.last_frame_time = os.clock()
 
-    balloon.initialize()
+    -- balloon.initialize()
 
     -- Register for future settings updates
     settings.register('settings', 'balloon_settings_update', function(s)
         if (s ~= nil) then
             balloon.settings = s
+            balloon.initialize()
         end
-
-        --settings.save()
-        balloon.initialize()
     end)
 end)
 

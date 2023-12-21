@@ -4,10 +4,8 @@ local C = ffi.C
 local d3d8dev = d3d.get_device()
 
 local gdi = require('gdifonts.include')
-local encoding = require('gdifonts.encoding')
 
 local PI2 = math.pi*2
-local d3dwhite = d3d.D3DCOLOR_ARGB(255, 255, 255, 255)
 
 local ui = {}
 
