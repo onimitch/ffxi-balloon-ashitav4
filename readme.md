@@ -51,6 +51,10 @@ You can use `/balloon` or `/bl`
 
 `/balloon test` - List all available tests.
 
+## Moving balloon
+
+While the balloon is open you can use the mouse to click and drag it to move it around.
+
 ## Themes
 
 There are currently four themes bundled with the addon.
