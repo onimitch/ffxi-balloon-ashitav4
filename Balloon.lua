@@ -1,4 +1,4 @@
-addon.name      = 'Balloon'
+addon.name      = 'balloon'
 addon.author    = 'Originally by Hando, English support added by Yuki & Kenshi, themes added by Ghosty, ported to Ashita v4 by onimitch.'
 addon.version   = '4.0'
 addon.desc      = 'Displays NPC chat logs in a UI Balloon, similar to FFXIV.'
@@ -27,7 +27,7 @@ local chat_modes = defines.chat_modes
 local chat_color_codes = defines.chat_color_codes
 
 local balloon = {
-    debug = 'chunk',
+    debug = 'off',
     waiting_to_close = false,
     close_timer = 0,
     last_text = '',
@@ -380,7 +380,7 @@ local function print_help(isError)
         { '/balloon theme <theme>', 'Loads the specified theme.' },
         { '/balloon scale <scale>', 'Scales the size of the balloon by a decimal (eg: 1.5).' },
         { '/balloon delay <seconds>', 'Delay before closing promptless balloons.' },
-        { '/balloon text_speed <chars>', 'Speed that text is displayed, in characters per frame.' },
+        { '/balloon text_speed <chars per second>', 'Speed that text is displayed, in characters per second.' },
         { '/balloon portrait', 'Toggle the display of character portraits, if the theme has settings for them.' },
         { '/balloon move_closes', 'Toggle balloon auto-close on player movement.' },
         { '/balloon test <name> <lang> <mode>', 'Display a test bubble. Lang: - (auto), en or ja. Mode: 1 (dialogue), 2 (system). "/balloon test" to see the list of available tests.' },
@@ -683,11 +683,11 @@ ashita.events.register('d3d_present', 'balloon_d3d_present', function()
 end)
 
 ashita.events.register('mouse', 'balloon_mouse', function (e)
-    if ui:hidden() then
-        return
-    end
-
     if e.message == defines.MOUSE_DOWN then
+        if ui:hidden() then
+            return
+        end
+
         local ui_x, ui_y = ui:position()
         local w, h = ui:window_size()
         local mouse_x, mouse_y = e.x, e.y
@@ -703,18 +703,24 @@ ashita.events.register('mouse', 'balloon_mouse', function (e)
         end
     elseif balloon.drag_offset ~= nil then
         e.blocked = true
-        if e.message == defines.MOUSE_UP then
-            ui:position(e.x + balloon.drag_offset[1], e.y + balloon.drag_offset[2], true)
+
+        local new_position = {
+            e.x + balloon.drag_offset[1],
+            e.y + balloon.drag_offset[2],
+        }
+
+        if e.message == defines.MOUSE_UP or ui:hidden() then
+            ui:position(new_position[1], new_position[2], true)
 
             -- Convert to center anchor for saving to settings
             local w, h = ui:window_size()
-            balloon.settings.position.x = balloon.drag_offset[1] + w / 2
-            balloon.settings.position.y = balloon.drag_offset[2] + h / 2
+            balloon.settings.position.x = new_position[1] + w / 2
+            balloon.settings.position.y = new_position[2] + h / 2
             settings.save()
 
             balloon.drag_offset = nil
         else
-            ui:position(e.x + balloon.drag_offset[1], e.y + balloon.drag_offset[2], true)
+            ui:position(new_position[1], new_position[2], true)
         end
     end
 end)

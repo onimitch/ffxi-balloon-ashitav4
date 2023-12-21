@@ -7,23 +7,16 @@ local tests = T{}
 
 tests.short = {
     'Test',
-    'Can I look after an item?', 
+    'Can I look after an item?',
     'アイテムを預けるクポ？',
 }
 
-tests.std = {
-    'Test',
-    'TODO', 
-    [[モーグリの応援、
-ちゃんと届いているクポ？　今、モグハウスは
-弱い雷の力で満たされているクポ！]],
-}
-
 tests.item = {
-    'Test',
-    'TODO', 
-    [[池から]] .. cc.item .. [[魚籠【堀ブナ】]] .. cc.standard .. 
-    [[を、畑で]] .. cc.item .. [[ナットベイン]] .. cc.standard .. 
+    'Moogle',
+    [[Please get me an ]] .. cc.item .. [[Orange Juice]] .. cc.standard ..
+    [[ and some ]] .. cc.item .. [[Apple Pie]] .. cc.standard,
+    [[池から]] .. cc.item .. [[魚籠【堀ブナ】]] .. cc.standard ..
+    [[を、畑で]] .. cc.item .. [[ナットベイン]] .. cc.standard ..
     [[と]] .. cc.item .. [[デーツ]] .. cc.standard .. [[を用意してほしいクポ！]],
 }
 
@@ -48,23 +41,14 @@ tests.colors = {
 
 tests.long = {
     'Test',
-    'TODO',
+    "Selh'teus proved that to us ten thousand years ago. Destruction is your destiny. You cannot escape what has already been decided.",
     [[お前のバッグ、
 ゴブリンたちより、ずっと大きい。
 それも当然、お前は伝説のゴウツバクリだからだ。
 それでも足りない。それこそが伝説……。]],
 }
 
-tests.long2 = {
-    'Test',
-    'TODO',
-    [[……なぁんて、な。
-ガラでもねぇか、ヘヘッ。
-じゃあ、さっそくつけ始めてくれ。
-遅くとも夜中の1時ごろまでにはつけ終えてくれよ。]],
-}
-
-tests.baha = {
+tests.bahamut = {
     'Bahamut',
     "Selh'teus proved that to us ten thousand years ago. Destruction is your destiny. You cannot escape what has already been decided.",
     [[……なぁんて、な。

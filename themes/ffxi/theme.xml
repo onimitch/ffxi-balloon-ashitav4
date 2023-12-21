@@ -8,7 +8,7 @@
             <Height>43</Height>
             <OffsetX>-8</OffsetX>
             <OffsetY>-18</OffsetY>
-            <TextOffsetX>30</TextOffsetX>
+            <TextOffsetX>40</TextOffsetX>
             <TextOffsetY>-13</TextOffsetY>
             <Color>
                 <Alpha>255</Alpha>
@@ -26,7 +26,7 @@
         </NpcName>
         <Message>
             <FontEnglish>Segoe UI, Calibri, Cambria</FontEnglish>
-            <FontJapanese>Noto Sans JP, Meiryo</FontJapanese>
+            <FontJapanese>Meiryo</FontJapanese>
             <Size>10</Size>
             <MaxLength>81</MaxLength>
             <Width>610</Width>
