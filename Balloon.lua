@@ -1,6 +1,6 @@
 addon.name      = 'balloon'
 addon.author    = 'Originally by Hando, English support added by Yuki & Kenshi, themes added by Ghosty, ported to Ashita v4 by onimitch.'
-addon.version   = '4.0.2'
+addon.version   = '4.0.3'
 addon.desc      = 'Displays NPC chat logs in a UI Balloon, similar to FFXIV.'
 addon.link      = 'https://github.com/onimitch/ffxi-balloon-ashitav4'
 
