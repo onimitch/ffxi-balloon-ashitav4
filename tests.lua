@@ -20,6 +20,61 @@ tests.item = {
     [[と]] .. cc.item .. [[デーツ]] .. cc.standard .. [[を用意してほしいクポ！]],
 }
 
+tests.crash1 = {
+    'Crash Test',
+    '',
+    [[……。]],
+}
+
+tests.crash2 = {
+    'Crash Test',
+    '',
+    [[…… ]],
+}
+
+tests.crash3 = {
+    'Crash Test',
+    '',
+    [[……]],
+}
+
+tests.crash4 = {
+    'Crash Test',
+    '',
+    [[...]],
+}
+
+tests.crash5 = {
+    'Crash Test',
+    '',
+    [[...]],
+}
+
+tests.clip_issue1 = {
+    'Makki-Chebukki',
+    '',
+    [[……。
+プリッシュのおしおき、思いっきりやるもんなぁ～]],
+}
+tests.clip_issue2 = {
+    'Kukki-Chebukki',
+    '',
+    [[……。
+プリッシュのおしおき、遠慮ないもんなぁ～。]],
+}
+tests.clip_issue3 = {
+    'Cherukiki',
+    '',
+    [[……。
+プリッシュのおしおき、殺す気まんまんだもんなぁ～]],
+}
+tests.clip_issue4 = {
+    'Makki-Chebukki',
+    '',
+    [[……。
+あのさぁ、おいら思うんだけどさぁ。]],
+}
+
 tests.colors = {
     'Test',
     [[１]] .. cc.item .. [[Item]] .. cc.standard .. ', ' ..

@@ -25,11 +25,14 @@ defines.chat_color_codes = T{
 }
 
 defines.chat_modes = T{
+    cutscene_emote = 15,
+    player = 36,
+    others = 37,
+    battle = 122,
+    timed_battle = 142,
+    timed_message = 144,
     message = 150,
     system = 151,
-    timed_message = 144,
-    timed_battle = 142,
-    cutscene_emote = 15,
 }
 
 defines.packets = {

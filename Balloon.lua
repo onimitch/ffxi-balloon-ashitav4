@@ -156,7 +156,7 @@ end
 
 balloon.process_incoming_message = function(e)
     -- Obtain the chat mode..
-    local mode = bit.band(e.mode_modified,  0x000000FF)
+    local mode = bit.band(e.mode, 0x000000FF)
 
 	-- log debug info
 	if S{'mode', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'Mode: ' .. mode .. ' Text: ' .. e.message) end
@@ -178,7 +178,7 @@ balloon.process_incoming_message = function(e)
 	if S{'codes', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'codes: ' .. parse_codes(e.message)) end
 
 	if balloon.settings.display_mode >= 1 then
-		e.message_modified = balloon.process_balloon(e.message_modified, mode)
+		e.message_modified = balloon.process_balloon(e.message, mode)
     end
 end
 
@@ -189,7 +189,7 @@ balloon.process_balloon = function(message, mode)
 	-- detect whether messages have a prompt button
 	local timed = true
 	if (S{chat_modes.message, chat_modes.system}[mode] and message:sub(-#defines.PROMPT_CHARS) == defines.PROMPT_CHARS)
-        or balloon.in_mog_menu or balloon.in_menu then
+        or balloon.in_menu then -- or balloon.in_mog_menu 
 		timed = false
 	end
 
@@ -596,18 +596,21 @@ ashita.events.register('packet_in', 'balloon_packet_in', function(e)
     end
 
 	-- Check if player has left a conversation
-	if e.id == defines.packets.inc.zone_out then
+    if e.id == defines.packets.inc.mog_menu then
+        balloon.in_mog_menu = true
+    elseif e.id == defines.packets.inc.zone_out then
 		balloon.close()
     elseif e.id == defines.packets.inc.leave_conversation then
+        if balloon.in_mog_menu then
+            balloon.in_mog_menu = false
+            return
+        end
         local type = struct.unpack('b', e.data_modified, 0x04 + 1)
         LogManager:Log(5, 'Balloon', 'packets.inc.leave_conversation - type: ' .. tostring(type))
         if tonumber(type) == 0 then
             balloon.close()
         end
-	elseif e.id == defines.packets.inc.mog_menu then
-        -- Disabled for now until we can handle closing mog menu better
-        --balloon.in_mog_menu = true
-    end
+	end
 end)
 
 ashita.events.register('packet_out', 'balloon_packet_out', function (e)
@@ -623,7 +626,7 @@ ashita.events.register('packet_out', 'balloon_packet_out', function (e)
 
         if in_menu == 1 then
             balloon.in_menu = true
-        else --if option_index ~= 2 then -- 2 = selected a home point warp
+        elseif option_index == 0 or option_index == 2 then --if option_index ~= 2 then -- 2 = selected a home point warp
             balloon.close()
         end
 
