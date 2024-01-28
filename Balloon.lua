@@ -381,7 +381,7 @@ local function print_help(isError)
         { '/balloon theme <theme>', 'Loads the specified theme.' },
         { '/balloon scale <scale>', 'Scales the size of the balloon by a decimal (eg: 1.5).' },
         { '/balloon delay <seconds>', 'Delay before closing promptless balloons.' },
-        { '/balloon text_speed <chars per second>', 'Speed that text is displayed, in characters per second.' },
+        { '/balloon speed <chars per second>', 'Speed that text is displayed, in characters per second.' },
         { '/balloon portrait', 'Toggle the display of character portraits, if the theme has settings for them.' },
         { '/balloon move_closes', 'Toggle balloon auto-close on player movement.' },
         { '/balloon test <name> <lang> <mode>', 'Display a test bubble. Lang: - (auto), en or ja. Mode: 1 (dialogue), 2 (system). "/balloon test" to see the list of available tests.' },
