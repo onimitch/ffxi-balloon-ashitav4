@@ -18,19 +18,22 @@ defines.chat_color_codes = T{
     -- color code 8 (orange/RoE objectives?)
     orange = string.char(0x1E,0x08),
 
-    cutscene_emote = string.char(0x1F,0x0F),
+    emote = string.char(0x1F,0x0F),
 
     -- characters used to start a color code
     -- leadchars = string.char(0x1E, 0x1F),
 }
 
 defines.chat_modes = T{
-    cutscene_emote = 15,
+    emote = 15,
     player = 36,
     others = 37,
+    synth = 121,
     battle = 122,
     timed_battle = 142,
     timed_message = 144,
+    item_recieve = 146,
+    misc_message = 148,
     message = 150,
     system = 151,
 }
@@ -53,22 +56,34 @@ defines.packets = {
 }
 
 -- 0x31-0x33 and 0x37 all appear the same
-defines.PROMPT_CHARS = string.char(0x7F,0x31)
+--defines.PROMPT_CHARS = string.char(0x7F,0x31)
 -- the 0x01 in this is the number of seconds before the prompt continues itself
 -- 0x34-0x36 seem to do the same thing
 defines.AUTO_PROMPT_CHARS = string.char(0x7F,0x34,0x01)
 
-defines.STRIP_PROMPT_CHARS = {
+defines.PROMPT_CHARS = {
     string.char(0x7F,0x31),
     string.char(0x7F,0x32),
     string.char(0x7F,0x33),
     string.char(0x7F,0x34),
     string.char(0x7F,0x35),
     string.char(0x7F,0x36),
+    string.char(0x7F,0x37),
 }
 
+-- Auto prompt usually seen like 0x7F,0x34,0x01, where the 0x01 is the number of seconds before the prompt continues itself
+defines.auto_prompt_chars_pattern = '[\127][\49\50\51\52\53\54\55][\01\02\03\04\05\06]'
+-- Normal prompt doesn't have the third character at the end
+defines.prompt_chars_pattern = '[\127][\49\50\51\52\53\54\55]'
+
+-- Mouse state
 defines.MOUSE_DOWN = 513
 defines.MOUSE_UP = 514
+
+-- 48 Square, 49 Cross, 50 Circle, 51 Triangle
+defines.DINPUT_CONTROLLER_DISMISS = S{49, 50}
+-- 12 A, 13 B, 14 X, 15 Y
+defines.XINPUT_CONTROLLER_DISMISS = S{12, 13}
 
 
 return defines

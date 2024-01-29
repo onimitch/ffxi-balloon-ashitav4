@@ -28,6 +28,8 @@ local chat_color_codes = defines.chat_color_codes
 
 local balloon = {
     debug = 'off',
+    debug_closing = false,
+    debug_142 = false,
     waiting_to_close = false,
     close_timer = 0,
     last_text = '',
@@ -41,6 +43,12 @@ local balloon = {
     in_mog_menu = false,
     in_menu = false,
     drag_offset = nil,
+    accepted_chat_modes = S{
+        chat_modes.message,
+        chat_modes.system,
+        chat_modes.timed_battle,
+        chat_modes.timed_message,
+    },
 }
 
 -- parses a string into char[hex bytecode]
@@ -48,6 +56,22 @@ local function parse_codes(str)
 	return (str:gsub('.', function (c)
 		return string.format('[%02X]', string.byte(c))
 	end))
+end
+
+local pGameMenu = ashita.memory.find('FFXiMain.dll', 0, '8B480C85C974??8B510885D274??3B05', 16, 0)
+local function get_game_menu_name()
+    local menu_pointer = ashita.memory.read_uint32(pGameMenu)
+    local menu_val = ashita.memory.read_uint32(menu_pointer)
+    if (menu_val == 0) then
+        return ''
+    end
+    local menu_header = ashita.memory.read_uint32(menu_val + 4)
+    local menu_name = ashita.memory.read_string(menu_header + 0x46, 16)
+    return string.gsub(menu_name, '\x00', ''):trimex()
+end
+local function is_chat_open()
+    local menu_name = get_game_menu_name()
+    return menu_name:match('menu[%s]+inline')
 end
 
 -------------------------------------------------------------------------------
@@ -59,6 +83,18 @@ balloon.initialize = function()
     if lang == 1 then
         balloon.lang_code = 'ja'
     end
+
+    balloon.accepted_chat_modes = S{
+        chat_modes.message,
+        chat_modes.system,
+    }
+    if balloon.settings.filter.timed_battle then
+        balloon.accepted_chat_modes:add(chat_modes.timed_battle)
+    end
+    if balloon.settings.filter.timed_message then
+        balloon.accepted_chat_modes:add(chat_modes.timed_message)
+    end
+    local chat_mode_list = balloon.accepted_chat_modes:concat('/')
 
 	balloon.apply_theme()
 
@@ -94,6 +130,7 @@ balloon.update_timer = function()
     end
 
     if balloon.close_timer <= 0 then
+        if balloon.debug_closing then print('Closing from timer') end
         balloon.close()
     else
         ashita.tasks.once(1, balloon.update_timer)
@@ -135,6 +172,7 @@ balloon.handle_player_movement = function(player_entity)
 
     if not ui:hidden() and balloon.settings.move_close then
         if balloon.player_pos == nil then
+            if balloon.debug_closing then print('Closing from move') end
             balloon.close()
         else
             local moved = {
@@ -144,6 +182,7 @@ balloon.handle_player_movement = function(player_entity)
             }
             for _, v in ipairs(moved) do
                 if math.abs(v) > balloon.move_check_sensitivity then
+                    if balloon.debug_closing then print('Closing from move') end
                     balloon.close()
                     break
                 end
@@ -162,23 +201,27 @@ balloon.process_incoming_message = function(e)
 	if S{'mode', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'Mode: ' .. mode .. ' Text: ' .. e.message) end
 
 	-- skip text modes that aren't NPC speech
-    if not S{chat_modes.message, chat_modes.system, chat_modes.timed_battle, chat_modes.timed_message}[mode] then
+    if not balloon.accepted_chat_modes[mode] then
         if S{'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', ('Not accepted mode: %d'):format(mode)) end
         return
     end
 
+    -- TODO: Check if this is correct, I think we should check it's actually a blank line, since currently this is only checking endswidth
 	-- blank prompt line that auto-continues itself,
 	-- usually used to clear a space for a scene change?
 	if e.message:endswith(defines.AUTO_PROMPT_CHARS) then
+        LogManager:Log(5, 'Balloon', 'Closed from ending with Auto prompt characters: ' .. parse_codes(e.message))
+        if balloon.debug_closing then print('Closing from auto prompt chars') end
 		balloon.close()
 		return
 	end
 
-	-- log debug info
-	if S{'codes', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'codes: ' .. parse_codes(e.message)) end
-
 	if balloon.settings.display_mode >= 1 then
 		e.message_modified = balloon.process_balloon(e.message, mode)
+
+        if balloon.debug_142 and mode == defines.chat_modes.timed_battle then
+            e.message_modified = '(142) ' .. e.message_modified
+        end
     end
 end
 
@@ -187,18 +230,27 @@ balloon.process_balloon = function(message, mode)
 	balloon.last_mode = mode
 
 	-- detect whether messages have a prompt button
-	local timed = true
-	if (S{chat_modes.message, chat_modes.system}[mode] and message:sub(-#defines.PROMPT_CHARS) == defines.PROMPT_CHARS)
-        or balloon.in_menu then -- or balloon.in_mog_menu 
-		timed = false
-	end
+    local ends_with_prompt = false
+    for _, v in ipairs(defines.PROMPT_CHARS) do
+        ends_with_prompt = message:endswith(v)
+        if ends_with_prompt then
+            break
+        end
+    end
+    local timed = (not balloon.in_menu and not ends_with_prompt)
+
+	-- local timed = true
+	-- if (S{chat_modes.message, chat_modes.system}[mode] and message:endswith(defines.PROMPT_CHARS[1]))
+    --     or balloon.in_menu then -- or balloon.in_mog_menu 
+	-- 	timed = false
+	-- end
 
 	-- Extract speaker name
-	local start, _end = message:find('.- : ')
+    local npc_prefix_start, npc_prefix_end = message:find('.- : ')
 	local npc_prefix = ''
-	if start ~= nil then
-		if _end < 32 and start > 0 then 
-            npc_prefix = message:sub(start, _end)
+    if npc_prefix_start ~= nil then
+        if npc_prefix_end < 32 and npc_prefix_start > 0 then
+            npc_prefix = message:sub(npc_prefix_start, npc_prefix_end)
         end
 	end
 	local npc_name = npc_prefix:sub(0, #npc_prefix-2)
@@ -209,9 +261,9 @@ balloon.process_balloon = function(message, mode)
 
 	-- mode 1, blank log lines and visible balloon
 	if balloon.settings.display_mode == 1 then
-        -- Check if message contains prompt chars
-        local end_of_text_pos = #message - 1
-        for _, prompt_chars in ipairs(defines.STRIP_PROMPT_CHARS) do
+        -- Preserve ending prompt chars
+        local end_of_text_pos = #message
+        for _, prompt_chars in ipairs(defines.PROMPT_CHARS) do
             local prompt_pos, _ = message:find(prompt_chars, -4, true)
             if prompt_pos ~= nil then
                 end_of_text_pos = prompt_pos
@@ -223,30 +275,29 @@ balloon.process_balloon = function(message, mode)
             result = result .. '...'
         end
         -- Preserve prompt chars
-        result = result .. message:sub(end_of_text_pos, #message)
-
-		-- if npc_prefix == '' then
-		-- 	-- result = '' .. '\n'
-        --     result = message:sub(#message-1, #message)
-		-- else
-        --     -- Preserve prompt chars
-		-- 	result = npc_prefix .. '...' .. message:sub(#message-1, #message)
-		-- end
+        if end_of_text_pos == #message then
+            -- Empty message
+        else
+            result = result .. message:sub(end_of_text_pos)
+        end
 	end
 
-    if S{'chars', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'message: ' .. message) end
-    if S{'codes', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'codes before: ' .. parse_codes(message:sub(-4))) end
+    -- strip the NPC name from the start of the message
+    if npc_prefix ~= '' then
+        message = message:sub(npc_prefix_end)
+        -- message = message:gsub(npc_prefix:gsub('-', '--'), '')
+    end
+
+    -- log debug info
+    if S{'message', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'message: ' .. message) end
+	if S{'message', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'codes: ' .. parse_codes(message)) end
+    if S{'message', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'end codes shiftjis: ' .. parse_codes(message:sub(-4))) end
 
     -- Convert message to utf8
 	message = balloon.convert_shiftjis_to_utf8(message)
 
-	-- strip the NPC name from the start of the message
-	if npc_prefix ~= '' then
-		message = message:gsub(npc_prefix:gsub('-', '--'), '')
-	end
-
-	if S{'process', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'Pre-process: ' .. message) end
-	if S{'codes', 'chunk', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'codes after: ' .. parse_codes(message:sub(-4))) end
+	if S{'message+', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'Pre-process: ' .. message) end
+	if S{'message', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'end codes utf8: ' .. parse_codes(message:sub(-4))) end
 
     -- TODO: Check if this is necessary (this was probably an issue with windower text color tags and opening with a \cr tag)
 	-- strip the default color code from the start of messages,
@@ -256,13 +307,15 @@ balloon.process_balloon = function(message, mode)
 		message = string.sub(message, #default_color + 1)
 	end
 
-    -- Strip out everything after a prompt character
-    for _, prompt_chars in ipairs(defines.STRIP_PROMPT_CHARS) do
-        local prompt_pos, _ = message:find(prompt_chars, -4, true)
-        if prompt_pos ~= nil then
-            message = message:sub(1, prompt_pos - 1)
-        end
-    end
+    -- Strip out prompt characters
+    message = message:gsub(defines.auto_prompt_chars_pattern, '')
+    message = message:gsub(defines.prompt_chars_pattern, '')
+    -- for _, prompt_chars in ipairs(defines.PROMPT_CHARS) do
+    --     local prompt_pos, _ = message:find(prompt_chars, -4, true)
+    --     if prompt_pos ~= nil then
+    --          message = message:sub(1, prompt_pos - 1)
+    --     end
+    -- end
 
     message = message:gsub(chat_color_codes.standard, '[BL_c1]') --color code 1 (black/reset)
     message = message:gsub(chat_color_codes.item, '[BL_c2]') --color code 2 (green/regular items)
@@ -272,7 +325,7 @@ balloon.process_balloon = function(message, mode)
     message = message:gsub(chat_color_codes.cyan, '[BL_c6]') --color code 6 (cyan/???)
     message = message:gsub(chat_color_codes.yellow, '[BL_c7]') --color code 7 (yellow/???)
     message = message:gsub(chat_color_codes.orange, '[BL_c8]') --color code 8 (orange/RoE objectives?)
-    message = message:gsub(chat_color_codes.cutscene_emote, '') --cutscene emote color code (handled by the message type instead)
+    message = message:gsub(chat_color_codes.emote, '') --cutscene emote color code (handled by the message type instead)
 
     message = message:gsub('^?([%w%.\'(<“])', '%1')
     message = message:gsub('(%w)(%.%.%.+)([%w“])', '%1%2 %3') --add a space after elipses to allow better line splitting
@@ -299,8 +352,8 @@ balloon.process_balloon = function(message, mode)
     message = message:gsub(string.char(0x07), '\n')
 
 
-    if S{'codes', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'codes end: ' .. parse_codes(message:sub(-4))) end
-	if S{'process', 'chunk', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'Final: ' .. encoding:UTF8_To_ShiftJIS(message)) end
+    if S{'message', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'codes end: ' .. parse_codes(message:sub(-4))) end
+	if S{'message', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'Final: ' .. encoding:UTF8_To_ShiftJIS(message)) end
 
 
     if not ui:set_character(npc_name) then
@@ -562,8 +615,9 @@ ashita.events.register('command', 'balloon_command_cb', function(e)
         local npc_name = test_entry[1]
         print(chat.header(addon.name):append(chat.message('Test: %s (%s)'):format(test_name, lang)))
         local message = test_entry[lang_index]
-        local mode = args[5] == '2' and chat_modes.system or chat_modes.message
-        balloon.process_balloon(npc_name .. ' : ' .. message, mode)
+        local mode = (args[5] == '2' or npc_name == '') and chat_modes.system or chat_modes.message
+        local message_prefix = (npc_name .. ' : ') and npc_name ~= '' or ''
+        balloon.process_balloon(message_prefix .. message, mode)
         return
     end
 
@@ -608,6 +662,7 @@ ashita.events.register('packet_in', 'balloon_packet_in', function(e)
         local type = struct.unpack('b', e.data_modified, 0x04 + 1)
         LogManager:Log(5, 'Balloon', 'packets.inc.leave_conversation - type: ' .. tostring(type))
         if tonumber(type) == 0 then
+            if balloon.debug_closing then print('Closing from leave conversation: ' .. type) end
             balloon.close()
         end
 	end
@@ -627,6 +682,7 @@ ashita.events.register('packet_out', 'balloon_packet_out', function (e)
         if in_menu == 1 then
             balloon.in_menu = true
         elseif option_index == 0 or option_index == 2 then --if option_index ~= 2 then -- 2 = selected a home point warp
+            if balloon.debug_closing then print('Closing from dialogue option') end
             balloon.close()
         end
 
@@ -723,6 +779,46 @@ ashita.events.register('mouse', 'balloon_mouse', function (e)
             balloon.drag_offset = nil
         else
             ui:position(new_position[1], new_position[2], true)
+        end
+    end
+end)
+
+ashita.events.register('key_data', 'balloon_key_data', function(e)
+    if is_chat_open() then
+        return
+    end
+
+    -- DirectInput key codes http://www.flint.jp/misc/?q=dik
+    if e.down and (e.key == 0x01 or e.key == 0x1C) then
+        if not ui:hidden() then
+            if balloon.debug_closing then print('Closing from enter key') end
+            balloon.close()
+        end
+    end
+end)
+
+ashita.events.register('dinput_button', 'balloon_dinput_button', function(e)
+    if is_chat_open() then
+        return
+    end
+
+    if defines.DINPUT_CONTROLLER_DISMISS[e.button] ~= nil and e.state == 128 then
+        if not ui:hidden() then
+            if balloon.debug_closing then print('Closing from dinput') end
+            balloon.close()
+        end
+    end
+end)
+
+ashita.events.register('xinput_button', 'balloon_xinput_button', function(e)
+    if is_chat_open() then
+        return
+    end
+
+    if defines.XINPUT_CONTROLLER_DISMISS[e.button] ~= nil and e.state == 1 then
+        if not ui:hidden() then
+            if balloon.debug_closing then print('Closing from xinput') end
+            balloon.close()
         end
     end
 end)

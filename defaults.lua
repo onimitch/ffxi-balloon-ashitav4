@@ -9,6 +9,10 @@ defaults.text_speed = 100
 defaults.theme = 'default'
 defaults.scale = 1
 defaults.portraits = true
+defaults.filter = {
+    timed_battle = true,
+    timed_message = true,
+}
 
 local scaling = require('scaling')
 defaults.position = {}

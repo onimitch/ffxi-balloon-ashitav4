@@ -20,59 +20,26 @@ tests.item = {
     [[と]] .. cc.item .. [[デーツ]] .. cc.standard .. [[を用意してほしいクポ！]],
 }
 
-tests.crash1 = {
-    'Crash Test',
-    '',
-    [[……。]],
-}
-
-tests.crash2 = {
-    'Crash Test',
-    '',
-    [[…… ]],
-}
-
-tests.crash3 = {
-    'Crash Test',
-    '',
-    [[……]],
-}
-
-tests.crash4 = {
-    'Crash Test',
-    '',
-    [[...]],
-}
-
-tests.crash5 = {
-    'Crash Test',
-    '',
-    [[...]],
-}
-
-tests.clip_issue1 = {
+tests.clip_issue = {
     'Makki-Chebukki',
-    '',
+    [[...
+This line used to get clipped.]],
     [[……。
 プリッシュのおしおき、思いっきりやるもんなぁ～]],
 }
-tests.clip_issue2 = {
-    'Kukki-Chebukki',
-    '',
-    [[……。
-プリッシュのおしおき、遠慮ないもんなぁ～。]],
+
+tests.unknown = {
+    '???',
+    'Unknown speaker...',
+    [[不思議な人物……。]],
 }
-tests.clip_issue3 = {
-    'Cherukiki',
+
+tests.homepoint = {
     '',
-    [[……。
-プリッシュのおしおき、殺す気まんまんだもんなぁ～]],
-}
-tests.clip_issue4 = {
-    'Makki-Chebukki',
-    '',
-    [[……。
-あのさぁ、おいら思うんだけどさぁ。]],
+    'A home point can be set as a spot for you to return to Vana\'diel when you have been knocked out. You can also use a home point to teleport to other home points.',
+    [[ここではホームポイントを利用して、
+戦闘不能時の帰って来る位置の設定や
+他のホームポイントへのワープができます。]],
 }
 
 tests.colors = {
@@ -94,22 +61,13 @@ tests.colors = {
     [[７]] .. cc.orange .. [[オレンジ色]] .. cc.standard
 }
 
-tests.long = {
-    'Test',
-    "Selh'teus proved that to us ten thousand years ago. Destruction is your destiny. You cannot escape what has already been decided.",
-    [[お前のバッグ、
-ゴブリンたちより、ずっと大きい。
-それも当然、お前は伝説のゴウツバクリだからだ。
-それでも足りない。それこそが伝説……。]],
-}
-
 tests.bahamut = {
     'Bahamut',
     "Selh'teus proved that to us ten thousand years ago. Destruction is your destiny. You cannot escape what has already been decided.",
-    [[……なぁんて、な。
-ガラでもねぇか、ヘヘッ。
-じゃあ、さっそくつけ始めてくれ。
-遅くとも夜中の1時ごろまでにはつけ終えてくれよ。]],
+    [[生ける神の力を授けても、
+おまえたち人を救うことはできん。
+おまえたちは既に死んでいる。
+死によって朽ち果てた躯にすぎない。]],
 }
 
 return tests
