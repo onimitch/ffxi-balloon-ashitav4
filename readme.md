@@ -41,7 +41,7 @@ You can use `/balloon` or `/bl`
 
 `/balloon delay <seconds>` - Delay before closing promptless balloons.
 
-`/balloon text_speed <chars per second>` - Speed that text is displayed, in characters per second. Set to 0 to disable.
+`/balloon speed <chars per second>` - Speed that text is displayed, in characters per second. Set to 0 to disable.
 
 `/balloon portrait` - Toggle the display of character portraits, if the theme has settings for them.
 
