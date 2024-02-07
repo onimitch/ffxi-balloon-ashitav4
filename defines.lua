@@ -25,17 +25,28 @@ defines.chat_color_codes = T{
 }
 
 defines.chat_modes = T{
+    say = 9,
+    shout = 10,
+    yell = 11,
+    tell = 12,
+    party = 13,
+    linkshell = 14,
     emote = 15,
-    player = 36,
-    others = 37,
+    player = 36, -- Player defeats the Tiny Mandragora.
+    others = 37, -- (maybe party?) Tenzen defeats the Beach Bunny.
+    other_defeated = 44, -- Non party members?
     synth = 121,
-    battle = 122,
-    timed_battle = 142,
-    timed_message = 144,
-    item_recieve = 146,
-    misc_message = 148,
+    battle = 122, -- You defeated a designated target. (Progress: 1/4)
+    misc_message2 = 142,
+    misc_message3 = 144,
+    item_recieve = 146, -- Player recieved item
+    misc_message = 148, -- Goblin spinner items, fishing messages, training accepted/cancelled
     message = 150,
     system = 151,
+    unity = 212,
+    linkshell2 = 214,
+    assistj = 220,
+    assiste = 222,
 }
 
 defines.packets = {

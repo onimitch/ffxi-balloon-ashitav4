@@ -29,7 +29,6 @@ local chat_color_codes = defines.chat_color_codes
 local balloon = {
     debug = 'off',
     debug_closing = false,
-    debug_142 = false,
     waiting_to_close = false,
     close_timer = 0,
     last_text = '',
@@ -43,12 +42,7 @@ local balloon = {
     in_mog_menu = false,
     in_menu = false,
     drag_offset = nil,
-    accepted_chat_modes = S{
-        chat_modes.message,
-        chat_modes.system,
-        chat_modes.timed_battle,
-        chat_modes.timed_message,
-    },
+    accepted_chat_modes = {},
 }
 
 -- parses a string into char[hex bytecode]
@@ -76,34 +70,37 @@ end
 
 -------------------------------------------------------------------------------
 
-balloon.initialize = function()
+balloon.initialize = function(new_settings)
     -- Get game language
     local lang = AshitaCore:GetConfigurationManager():GetInt32('boot', 'ashita.language', 'playonline', 2)
-    balloon.lang_code = 'en'
-    if lang == 1 then
-        balloon.lang_code = 'ja'
-    end
+    balloon.lang_code = lang == 1 and 'ja' or 'en'
 
+    -- Default chat modes that are always on
     balloon.accepted_chat_modes = S{
         chat_modes.message,
         chat_modes.system,
     }
-    if balloon.settings.filter.timed_battle then
-        balloon.accepted_chat_modes:add(chat_modes.timed_battle)
-    end
-    if balloon.settings.filter.timed_message then
-        balloon.accepted_chat_modes:add(chat_modes.timed_message)
-    end
-    local chat_mode_list = balloon.accepted_chat_modes:concat('/')
 
-	balloon.apply_theme()
+    -- Get additional chat modes from settings
+    local additional_chat_modes = balloon.settings.additional_chat_modes or {}
+    for _, v in ipairs(additional_chat_modes) do
+        balloon.accepted_chat_modes:add(v)
+    end
+    local chat_mode_list = balloon.accepted_chat_modes:concat(' ')
 
-	if balloon.theme_options ~= nil then
-        print(chat.header(addon.name):append(chat.message('Theme "%s", language: %s'):format(balloon.settings.theme, balloon.lang_code)))
+    -- Remove old filter setting
+    if balloon.settings.filter ~= nil then
+        balloon.settings.filter = nil
+    end
+
+	balloon.load_theme()
+
+    if balloon.theme_options ~= nil and new_settings == nil then
+        print(chat.header(addon.name):append(chat.message('Theme "%s", language: %s, chat modes: %s'):format(balloon.settings.theme, balloon.lang_code, chat_mode_list)))
     end
 end
 
-balloon.apply_theme = function()
+balloon.load_theme = function()
     -- Load the theme
     balloon.theme_options = theme.load(balloon.settings.theme, balloon.lang_code)
     if balloon.theme_options == nil then
@@ -210,18 +207,16 @@ balloon.process_incoming_message = function(e)
 	-- blank prompt line that auto-continues itself,
 	-- usually used to clear a space for a scene change?
 	if e.message:endswith(defines.AUTO_PROMPT_CHARS) then
-        LogManager:Log(5, 'Balloon', 'Closed from ending with Auto prompt characters: ' .. parse_codes(e.message))
-        if balloon.debug_closing then print('Closing from auto prompt chars') end
+        if balloon.debug_closing then 
+            print('Closing from auto prompt chars')
+            LogManager:Log(5, 'Balloon', 'Closed from ending with Auto prompt characters: ' .. parse_codes(e.message))
+        end
 		balloon.close()
 		return
 	end
 
 	if balloon.settings.display_mode >= 1 then
 		e.message_modified = balloon.process_balloon(e.message, mode)
-
-        if balloon.debug_142 and mode == defines.chat_modes.timed_battle then
-            e.message_modified = '(142) ' .. e.message_modified
-        end
     end
 end
 
@@ -497,7 +492,7 @@ ashita.events.register('command', 'balloon_command_cb', function(e)
 
             balloon.settings.theme = args[3]
 
-            balloon.apply_theme()
+            balloon.load_theme()
             if balloon.theme_options ~= nil then
                 print(chat.header(addon.name):append(chat.message('Theme changed: ')):append(chat.success(balloon.settings.theme)))
             else
@@ -575,7 +570,7 @@ ashita.events.register('command', 'balloon_command_cb', function(e)
 
         -- Some additional logic we need to run depending on the setting change
         if setting_key == 'portraits' then
-            balloon.apply_theme()
+            balloon.load_theme()
         end
 
         print(chat.header(addon.name):append(chat.message('%s changed: '):format(setting_name)):append(chat.success(balloon.settings[setting_key] and 'on' or 'off')))
@@ -616,7 +611,7 @@ ashita.events.register('command', 'balloon_command_cb', function(e)
         print(chat.header(addon.name):append(chat.message('Test: %s (%s)'):format(test_name, lang)))
         local message = test_entry[lang_index]
         local mode = (args[5] == '2' or npc_name == '') and chat_modes.system or chat_modes.message
-        local message_prefix = (npc_name .. ' : ') and npc_name ~= '' or ''
+        local message_prefix = npc_name ~= '' and (npc_name .. ' : ') or ''
         balloon.process_balloon(message_prefix .. message, mode)
         return
     end
@@ -631,11 +626,11 @@ ashita.events.register('load', 'balloon_load', function()
 
     balloon.initialize()
 
-    -- Register for future settings updates
+    -- Register for settings updates
     settings.register('settings', 'balloon_settings_update', function(s)
         if (s ~= nil) then
             balloon.settings = s
-            balloon.initialize()
+            balloon.initialize(s)
         end
     end)
 end)
