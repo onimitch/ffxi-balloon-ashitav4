@@ -348,7 +348,7 @@ function ui:set_type(type)
         [146] = self._system_settings, -- "You hear something moving to the east..."
         [15] = self._system_settings, -- cutscene emote
     }
-    self._type = types[type]
+    self._type = types[type] or self._system_settings
 
     self:update_message_bg(self._type.path)
     self.message_text:alpha(self._type.color.alpha)
