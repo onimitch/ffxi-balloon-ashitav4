@@ -70,4 +70,14 @@ tests.bahamut = {
 €‚É‚æ‚Á‚Ä‹€‚¿‰Ê‚Ä‚½‹ë‚É‚·‚¬‚È‚¢B]],
 }
 
+tests.punctuation_wrap = {
+    'Test',
+    "--testing...foo--testing...foo--testing...foo--testing...foo--testing...foo--testing...foo--" ..
+    "testing...foo--testing...foo--testing...foo--testing...foo--testing...foo--testing...foo--" ..
+    "foo-----testing... foo-- testing -- foo --end--",
+    "--testing...foo--testing...foo--testing...foo--testing...foo--testing...foo--testing...foo--" ..
+    "testing...foo--testing...foo--testing...foo--testing...foo--testing...foo--testing...foo--" ..
+    "foo-----testing... foo-- testing -- foo --end--",
+}
+
 return tests
