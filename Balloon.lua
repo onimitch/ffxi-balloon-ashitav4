@@ -323,6 +323,7 @@ balloon.process_balloon = function(message, mode)
     message = message:gsub(chat_color_codes.emote, '') --cutscene emote color code (handled by the message type instead)
 
     message = message:gsub('^?([%w%.\'(<“])', '%1')
+    message = message:gsub('%f[-]%-%-%f[^-]', '—') --replace -- with em dashes
 
     message = message:gsub('%[BL_c1]', '\\cr')
     message = message:gsub('%[BL_c2]', '\\cs('..ui._type.items..')')
