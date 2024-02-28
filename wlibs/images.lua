@@ -489,6 +489,34 @@ function images.unregister_event(t, key, fn)
     end
 end
 
+local vec_position = ffi.new('D3DXVECTOR2', { 0, 0 })
+local vec_scale = ffi.new('D3DXVECTOR2', { 1.0, 1.0 })
+local rect = ffi.new('RECT', { 0, 0, 100, 100 })
+
+function images:render(sprite)
+    if not self:visible() then
+        return
+    end
+
+    local texture = self:texture()
+
+    rect.top = 0
+    rect.left = 0
+    rect.right = texture.width
+    rect.bottom = texture.height
+    vec_position.x = self:pos_x()
+    vec_position.y = self:pos_y()
+
+    -- Calc correct scale to render at
+    vec_scale.x = self:width() / texture.width
+    vec_scale.y = self:height() / texture.height
+
+    local red, green, blue = self:color()
+    local color = d3d.D3DCOLOR_ARGB(self:alpha(), red, green, blue)
+
+    sprite:Draw(texture.ptr, rect, vec_scale, nil, 0.0, vec_position, color)
+end
+
 return images
 
 --[[

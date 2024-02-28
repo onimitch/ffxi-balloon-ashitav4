@@ -281,6 +281,10 @@ function texts.render(t, sprite)
     return meta[t].font_object:render(sprite)
 end
 
+function texts.font_object(t)
+    return meta[t].font_object
+end
+
 local function count_utf8_chars(str)
     if utf8 and utf8.len then
         return utf8.len(str)

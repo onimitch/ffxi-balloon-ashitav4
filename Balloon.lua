@@ -431,6 +431,7 @@ local function print_help(isError)
         { '/balloon speed <chars per second>', 'Speed that text is displayed, in characters per second.' },
         { '/balloon portrait', 'Toggle the display of character portraits, if the theme has settings for them.' },
         { '/balloon move_closes', 'Toggle balloon auto-close on player movement.' },
+        { '/balloon always_on_top', 'Toggle always on top (IMGUI mode).' },
         { '/balloon test <name> <lang> <mode>', 'Display a test bubble. Lang: - (auto), en or ja. Mode: 1 (dialogue), 2 (system). "/balloon test" to see the list of available tests.' },
     }
 
@@ -532,7 +533,7 @@ ashita.events.register('command', 'balloon_command_cb', function(e)
 
 		if #args > 2 then
             local old_val = balloon.settings[setting_key]
-			balloon.settings[setting_key] = tonumber(args[3])
+			balloon.settings[setting_key] = tonumber(args[3]) or 0
 
             -- Some additional logic we need to run depending on the setting change
             if setting_key == 'scale' then
@@ -552,7 +553,7 @@ ashita.events.register('command', 'balloon_command_cb', function(e)
     -- Handle toggle options
     -- Handle: /balloon portrait
     -- Handle: /balloon move_closes
-    if (#args == 2 and args[2]:any('portrait', 'portraits', 'move_closes', 'move_close')) then
+    if (#args == 2 and args[2]:any('portrait', 'portraits', 'move_closes', 'move_close', 'always_on_top')) then
         local setting_key_alias = {
             portrait = 'portraits',
             move_closes = 'move_close',
@@ -560,6 +561,7 @@ ashita.events.register('command', 'balloon_command_cb', function(e)
         local setting_names = {
             portraits = 'Display portraits',
             move_close = 'Close balloons on player movement',
+            always_on_top = 'Always on top (IMGUI mode)',
         }
         local setting_key = setting_key_alias[args[2]] or args[2]
         local setting_name = setting_names[setting_key] or args[2]
@@ -730,7 +732,12 @@ ashita.events.register('d3d_present', 'balloon_d3d_present', function()
     balloon.handle_player_movement(player_ent)
 
     if not ui:hidden() then
-        ui:render(delta_time)
+
+        if balloon.settings.always_on_top then
+            ui:render_imgui(delta_time)
+        else
+            ui:render(delta_time)
+        end
     end
 end)
 

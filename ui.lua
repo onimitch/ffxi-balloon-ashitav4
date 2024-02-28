@@ -4,6 +4,7 @@ local C = ffi.C
 local d3d8dev = d3d.get_device()
 
 local gdi = require('gdifonts.include')
+local imgui = require('imgui')
 
 local PI2 = math.pi*2
 
@@ -37,9 +38,7 @@ ui._show_portraits = true
 ui._theme_options = nil
 
 ui._sprite = nil
-ui._rect = ffi.new('RECT', { 0, 0, 100, 100, })
-ui._vec_position = ffi.new('D3DXVECTOR2', { 0, 0, })
-ui._vec_scale = ffi.new('D3DXVECTOR2', { 1.0, 1.0, })
+ui._bounds = { 0, 0, 0, 0 }
 
 
 local function setup_image(image, path)
@@ -246,6 +245,8 @@ function ui:position(x, y, topleft_anchor)
     self.message_background:pos(x, y)
     self.message_background:size(self._theme_options.message.width * self._scale, self._theme_options.message.height * self._scale)
 
+    local elements = {}
+
     if self._theme_options.portrait then
         local portrait_offset_x = self._theme_options.portrait.offset_x * self._scale
         local portrait_offset_y = self._theme_options.portrait.offset_y * self._scale
@@ -255,35 +256,56 @@ function ui:position(x, y, topleft_anchor)
         self.portrait:size(self._theme_options.portrait.width * self._scale, self._theme_options.portrait.height * self._scale)
         self.portrait_frame:pos(x + portrait_offset_x, y + portrait_offset_y)
         self.portrait_frame:size(self._theme_options.portrait.width * self._scale, self._theme_options.portrait.height * self._scale)
+
+        table.insert(elements, self.portrait_background)
+        table.insert(elements, self.portrait)
+        table.insert(elements, self.portrait_frame)
     end
 
     self.name_background:pos(x + name_bg_offset_x, y + name_bg_offset_y)
     self.name_background:size(self._theme_options.name.width * self._scale, self._theme_options.name.height * self._scale)
+    table.insert(elements, self.name_background)
 
     if self._theme_options.prompt then
         local prompt_offset_x = self._theme_options.prompt.offset_x * self._scale
         local prompt_offset_y = self._theme_options.prompt.offset_y * self._scale
         self.prompt:pos(x + prompt_offset_x, y + prompt_offset_y)
         self.prompt:size(self._theme_options.prompt.width * self._scale, self._theme_options.prompt.height * self._scale)
+
+        table.insert(elements, self.prompt)
     end
 
     self.message_text:pos(x + message_text_offset_x, y + message_text_offset_y)
     self.message_text:size(self._theme_options.message.font_size * self._scale)
-
     local message_text_width = (self._theme_options.message.width - self._theme_options.message.margin_right) * self._scale - message_text_offset_x
     local message_text_height = self._theme_options.message.height * self._scale
     self.message_text:width(message_text_width)
     self.message_text:height(message_text_height)
+    table.insert(elements, self.message_text)
 
     self.name_text:pos(x + name_text_offset_x, y + name_text_offset_y)
     self.name_text:size(self._theme_options.name.font_size * self._scale)
+    table.insert(elements, self.name_text)
 
     if self._theme_options.timer then
         local timer_text_offset_x = self._theme_options.timer.offset_x * self._scale
         local timer_text_offset_y = self._theme_options.timer.offset_y * self._scale
         self.timer_text:pos(x + timer_text_offset_x, y + timer_text_offset_y)
         self.timer_text:size(self._theme_options.timer.font_size * self._scale)
+        table.insert(elements, self.timer_text)
     end
+
+    -- Calculate window bounds
+    local bounds = { self.message_background:pos_x(), self.message_background:pos_y(),
+                     self.message_background:width(), self.message_background:height() }
+
+    for _, element in ipairs(elements) do
+        bounds[1] = math.min(bounds[1], element:pos_x())
+        bounds[2] = math.min(bounds[2], element:pos_y())
+        bounds[3] = math.max(bounds[3], element:pos_x() + (element:width() or 0))
+        bounds[4] = math.max(bounds[4], element:pos_y() + (element:height() or 0))
+    end
+    self._bounds = bounds
 end
 
 function ui:hide()
@@ -340,7 +362,6 @@ end
 
 function ui:set_type(type)
     local types = {
-        --[190] = self._system_settings, -- system text (always a duplicate of 151?)
         [150] = self._dialogue_settings, -- npc text
         [151] = self._system_settings, -- system text
         [142] = self._dialogue_settings, -- battle text
@@ -414,40 +435,6 @@ function ui:update_message_bg(path)
     end
 end
 
-local function Tokenize(str)
-	local result = {}
-	for word in str:gmatch("%S+") do
-		result[#result+1] = word
-	end
-	return result
-end
-
-function ui:wrap_text(str)
-	local line_length = self._theme_options.message.max_length+1
-    if self._has_portrait and self._theme_options.portrait.max_length then
-        line_length = self._theme_options.portrait.max_length+1
-    end
-	local length_left = line_length
-	local result = {}
-	local line = {}
-
-	for _, word in ipairs(Tokenize(str)) do
-		if #word+1 > length_left then
-			table.insert(result, table.concat(line, ' '))
-			line = {word}
-			length_left = line_length - #word
-		else
-			table.insert(line, word)
-			length_left = length_left - (#word + 1)
-		end
-	end
-
-	table.insert(result, table.concat(line, ' '):trimex())
-	local new_str = table.concat(result, '\n '):trimex()
-
-	return new_str
-end
-
 function ui:set_message(message)
     message = message or ''
     self._current_text = message
@@ -505,53 +492,102 @@ function ui:hidden()
     return self._hidden
 end
 
-local function render_image(sprite, image)
-    if not image:visible() then
-        return
-    end
-
-    local texture = image:texture()
-    local vec_position = ui._vec_position
-    local vec_scale = ui._vec_scale
-    local rect = ui._rect
-
-    rect.right = texture.width
-    rect.bottom = texture.height
-    vec_position.x = image:pos_x()
-    vec_position.y = image:pos_y()
-
-    -- Calc correct scale to render at
-    vec_scale.x = image:width() / texture.width
-    vec_scale.y = image:height() / texture.height
-
-    local red, green, blue = image:color()
-    local color = d3d.D3DCOLOR_ARGB(image:alpha(), red, green, blue)
-
-    sprite:Draw(image:texture().ptr, rect, vec_scale, nil, 0.0, vec_position, color)
+function ui:tick(delta_time)
+    self:animate_prompt(delta_time)
+    self:animate_text_display(self._text_speed * delta_time)
 end
 
 function ui:render(delta_time)
-    if (self._sprite == nil) then return end
+    self:tick(delta_time)
 
-    self:animate_prompt(delta_time)
-    self:animate_text_display(self._text_speed * delta_time)
+    if self._sprite == nil then return end
 
     local sprite = self._sprite
 
     sprite:Begin()
 
-    render_image(sprite, self.message_background)
-    render_image(sprite, self.portrait_background)
-    render_image(sprite, self.portrait)
-    render_image(sprite, self.portrait_frame)
-    render_image(sprite, self.name_background)
-    render_image(sprite, self.prompt)
+    self.message_background:render(sprite)
+    self.portrait_background:render(sprite)
+    self.portrait:render(sprite)
+    self.portrait_frame:render(sprite)
+    self.name_background:render(sprite)
+    self.prompt:render(sprite)
 
     self.message_text:render(sprite)
     self.name_text:render(sprite)
     self.timer_text:render(sprite)
 
     sprite:End()
+end
+
+function render_image_imgui(image)
+    if not image:visible() then
+        return
+    end
+
+    local texture = image:texture()
+    local red, green, blue = image:color()
+    local alpha = image:alpha()
+
+    imgui.SetCursorScreenPos({ image:pos_x(), image:pos_y() })
+    imgui.Image(tonumber(ffi.cast('uint32_t', texture.ptr)),
+                { image:width(), image:height() },
+                { 0, 0 },
+                { 1, 1 },
+                { red / 255, green / 255, blue / 255, alpha / 255 })
+end
+
+function render_fontobject_imgui(text_obj)
+    local fontobject = text_obj:font_object()
+    if fontobject == nil then
+        return
+    end
+
+    if fontobject.settings.visible ~= true or fontobject.settings.opacity == 0 then
+        return
+    end
+
+    local texture, rect = fontobject:get_texture()
+    if (texture ~= nil) then
+        local x = fontobject.settings.position_x
+        if (fontobject.settings.font_alignment == 1) then
+            x = fontobject.settings.position_x - (rect.right / 2)
+        elseif (fontobject.settings.font_alignment == 2) then
+            x = fontobject.settings.position_x - rect.right
+        end
+        local y = fontobject.settings.position_y
+
+        imgui.SetCursorScreenPos({ x, y })
+        imgui.Image(tonumber(ffi.cast('uint32_t', texture)),
+                    { rect.right, rect.bottom },
+                    { 0, 0 },
+                    { 1, 1 },
+                    { 1, 1, 1, fontobject.settings.opacity })
+    end
+end
+
+function ui:render_imgui(delta_time)
+    self:tick(delta_time)
+
+    imgui.SetNextWindowPos({ self._bounds[1], self._bounds[2] }, ImGuiCond_Always)
+    imgui.SetNextWindowSize({ self._bounds[3], self._bounds[4] }, ImGuiCond_Always)
+    imgui.SetNextWindowFocus()
+
+    local windowFlags = bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoMove)
+
+    if imgui.Begin('Balloon', true, windowFlags) then
+        render_image_imgui(self.message_background)
+        render_image_imgui(self.portrait_background)
+        render_image_imgui(self.portrait)
+        render_image_imgui(self.portrait_frame)
+        render_image_imgui(self.name_background)
+        render_image_imgui(self.prompt)
+
+        render_fontobject_imgui(self.message_text)
+        render_fontobject_imgui(self.name_text)
+        render_fontobject_imgui(self.timer_text)
+    end
+    imgui.End()
 end
 
 return ui
