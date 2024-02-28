@@ -221,6 +221,17 @@ balloon.process_incoming_message = function(e)
 end
 
 balloon.process_balloon = function(message, mode)
+    -- Do we need to check if the player is in combat?
+    -- We only check if the player is engaged (has weapon out) but this should be enough for our use case.
+    if not balloon.settings.in_combat then
+        local entity = AshitaCore:GetMemoryManager():GetEntity()
+        local party = AshitaCore:GetMemoryManager():GetParty()
+        local player_index = party:GetMemberTargetIndex(0)
+        if entity:GetStatus(player_index) == 1 then
+            return
+        end
+    end
+
 	balloon.last_text = message
 	balloon.last_mode = mode
 
@@ -233,12 +244,6 @@ balloon.process_balloon = function(message, mode)
         end
     end
     local timed = (not balloon.in_menu and not ends_with_prompt)
-
-	-- local timed = true
-	-- if (S{chat_modes.message, chat_modes.system}[mode] and message:endswith(defines.PROMPT_CHARS[1]))
-    --     or balloon.in_menu then -- or balloon.in_mog_menu 
-	-- 	timed = false
-	-- end
 
 	-- Extract speaker name
     local npc_prefix_start, npc_prefix_end = message:find('.- : ')
@@ -280,7 +285,6 @@ balloon.process_balloon = function(message, mode)
     -- strip the NPC name from the start of the message
     if npc_prefix ~= '' then
         message = message:sub(npc_prefix_end)
-        -- message = message:gsub(npc_prefix:gsub('-', '--'), '')
     end
 
     -- log debug info
@@ -305,12 +309,6 @@ balloon.process_balloon = function(message, mode)
     -- Strip out prompt characters
     message = message:gsub(defines.auto_prompt_chars_pattern, '')
     message = message:gsub(defines.prompt_chars_pattern, '')
-    -- for _, prompt_chars in ipairs(defines.PROMPT_CHARS) do
-    --     local prompt_pos, _ = message:find(prompt_chars, -4, true)
-    --     if prompt_pos ~= nil then
-    --          message = message:sub(1, prompt_pos - 1)
-    --     end
-    -- end
 
     message = message:gsub(chat_color_codes.standard, '[BL_c1]') --color code 1 (black/reset)
     message = message:gsub(chat_color_codes.item, '[BL_c2]') --color code 2 (green/regular items)
@@ -432,6 +430,7 @@ local function print_help(isError)
         { '/balloon portrait', 'Toggle the display of character portraits, if the theme has settings for them.' },
         { '/balloon move_closes', 'Toggle balloon auto-close on player movement.' },
         { '/balloon always_on_top', 'Toggle always on top (IMGUI mode).' },
+        { '/balloon in_combat', 'Toggle displaying balloon during combat.' },
         { '/balloon test <name> <lang> <mode>', 'Display a test bubble. Lang: - (auto), en or ja. Mode: 1 (dialogue), 2 (system). "/balloon test" to see the list of available tests.' },
     }
 
@@ -553,7 +552,7 @@ ashita.events.register('command', 'balloon_command_cb', function(e)
     -- Handle toggle options
     -- Handle: /balloon portrait
     -- Handle: /balloon move_closes
-    if (#args == 2 and args[2]:any('portrait', 'portraits', 'move_closes', 'move_close', 'always_on_top')) then
+    if (#args == 2 and args[2]:any('portrait', 'portraits', 'move_closes', 'move_close', 'always_on_top', 'in_combat')) then
         local setting_key_alias = {
             portrait = 'portraits',
             move_closes = 'move_close',
@@ -562,6 +561,7 @@ ashita.events.register('command', 'balloon_command_cb', function(e)
             portraits = 'Display portraits',
             move_close = 'Close balloons on player movement',
             always_on_top = 'Always on top (IMGUI mode)',
+            in_combat = 'Display in combat',
         }
         local setting_key = setting_key_alias[args[2]] or args[2]
         local setting_name = setting_names[setting_key] or args[2]

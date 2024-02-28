@@ -49,6 +49,8 @@ You can use `/balloon` or `/bl`
 
 `/balloon always_on_top` - Toggle always on top (IMGUI mode). This mode renders the final elements using IMGUI to ensure Balloon always appears in front of any other custom UI. If for some reason you have issues with this mode, you can use this command to disable it.
 
+`/balloon in_combat` - Toggle displaying balloon during combat (off by default).
+
 `/balloon test <name> <lang> <mode>` - Display a test bubble. Lang: "-" (auto), "en" or "ja". Mode: 1 (dialogue), 2 (system).
 
 `/balloon test` - List all available tests.
