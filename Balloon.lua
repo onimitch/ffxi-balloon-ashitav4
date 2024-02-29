@@ -226,9 +226,11 @@ balloon.process_balloon = function(message, mode)
     if not balloon.settings.in_combat then
         local entity = AshitaCore:GetMemoryManager():GetEntity()
         local party = AshitaCore:GetMemoryManager():GetParty()
-        local player_index = party:GetMemberTargetIndex(0)
-        if entity:GetStatus(player_index) == 1 then
-            return
+        if entity ~= nil and party ~= nil then
+            local player_index = party:GetMemberTargetIndex(0)
+            if entity:GetStatus(player_index) == 1 then
+                return
+            end
         end
     end
 
