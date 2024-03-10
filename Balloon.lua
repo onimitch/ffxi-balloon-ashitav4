@@ -216,24 +216,24 @@ balloon.process_incoming_message = function(e)
 	end
 
 	if balloon.settings.display_mode >= 1 then
-		e.message_modified = balloon.process_balloon(e.message, mode)
+        -- Do we need to check if the player is in combat?
+        -- We only check if the player is engaged (has weapon out) but this should be enough for our use case.
+        if not balloon.settings.in_combat then
+            local entity = AshitaCore:GetMemoryManager():GetEntity()
+            local party = AshitaCore:GetMemoryManager():GetParty()
+            if entity ~= nil and party ~= nil then
+                local player_index = party:GetMemberTargetIndex(0)
+                if player_index ~= nil and entity:GetStatus(player_index) == 1 then
+                    return
+                end
+            end
+        end
+
+        e.message_modified = balloon.process_balloon(e.message, mode)
     end
 end
 
 balloon.process_balloon = function(message, mode)
-    -- Do we need to check if the player is in combat?
-    -- We only check if the player is engaged (has weapon out) but this should be enough for our use case.
-    if not balloon.settings.in_combat then
-        local entity = AshitaCore:GetMemoryManager():GetEntity()
-        local party = AshitaCore:GetMemoryManager():GetParty()
-        if entity ~= nil and party ~= nil then
-            local player_index = party:GetMemberTargetIndex(0)
-            if entity:GetStatus(player_index) == 1 then
-                return
-            end
-        end
-    end
-
 	balloon.last_text = message
 	balloon.last_mode = mode
 
