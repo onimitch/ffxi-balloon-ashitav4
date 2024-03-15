@@ -68,6 +68,19 @@ local function is_chat_open()
     return menu_name:match('menu[%s]+inline')
 end
 
+local pEventSystem = ashita.memory.find('FFXiMain.dll', 0, 'A0????????84C0741AA1????????85C0741166A1????????663B05????????0F94C0C3', 0, 0)
+local function is_event_system_active()
+    if (pEventSystem == 0) then
+        return false
+    end
+    local ptr = ashita.memory.read_uint32(pEventSystem + 1)
+    if (ptr == 0) then
+        return false
+    end
+
+    return (ashita.memory.read_uint8(ptr) == 1)
+end
+
 -------------------------------------------------------------------------------
 
 balloon.initialize = function(new_settings)
@@ -218,7 +231,7 @@ balloon.process_incoming_message = function(e)
 	if balloon.settings.display_mode >= 1 then
         -- Do we need to check if the player is in combat?
         -- We only check if the player is engaged (has weapon out) but this should be enough for our use case.
-        if not balloon.settings.in_combat then
+        if not balloon.settings.in_combat and not is_event_system_active() then
             local entity = AshitaCore:GetMemoryManager():GetEntity()
             local party = AshitaCore:GetMemoryManager():GetParty()
             if entity ~= nil and party ~= nil then
