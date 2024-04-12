@@ -569,8 +569,10 @@ end
 function ui:render_imgui(delta_time)
     self:tick(delta_time)
 
-    imgui.SetNextWindowPos({ self._bounds[1], self._bounds[2] }, ImGuiCond_Always)
-    imgui.SetNextWindowSize({ self._bounds[3], self._bounds[4] }, ImGuiCond_Always)
+    local window_padding = 10 * self._scale
+
+    imgui.SetNextWindowPos({ self._bounds[1] - window_padding, self._bounds[2] - window_padding }, ImGuiCond_Always)
+    imgui.SetNextWindowSize({ self._bounds[3] + window_padding, self._bounds[4] + window_padding }, ImGuiCond_Always)
     imgui.SetNextWindowFocus()
 
     local windowFlags = bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoMove)
