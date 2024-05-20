@@ -43,6 +43,7 @@ defines.chat_modes = T{
     misc_message = 148, -- Goblin spinner items, fishing messages, training accepted/cancelled
     message = 150,
     system = 151,
+    message2 = 152,
     unity = 212,
     linkshell2 = 214,
     assistj = 220,
