@@ -21,6 +21,7 @@ local theme = require('theme')
 local ui = require('ui')
 local tests = require('tests')
 local defines = require('defines')
+local helpers = require('helpers')
 
 
 local chat_modes = defines.chat_modes
@@ -43,6 +44,12 @@ local balloon = {
     in_menu = false,
     drag_offset = nil,
     accepted_chat_modes = {},
+    auto_hide_game_ui = false,
+    status_server = nil,
+    auto_hide_after = 0,
+    auto_hide_delay = 1,
+    in_cinematic = false,
+    in_event = false,
 }
 
 -- parses a string into char[hex bytecode]
@@ -52,34 +59,7 @@ local function parse_codes(str)
 	end))
 end
 
-local pGameMenu = ashita.memory.find('FFXiMain.dll', 0, '8B480C85C974??8B510885D274??3B05', 16, 0)
-local function get_game_menu_name()
-    local menu_pointer = ashita.memory.read_uint32(pGameMenu)
-    local menu_val = ashita.memory.read_uint32(menu_pointer)
-    if (menu_val == 0) then
-        return ''
-    end
-    local menu_header = ashita.memory.read_uint32(menu_val + 4)
-    local menu_name = ashita.memory.read_string(menu_header + 0x46, 16)
-    return string.gsub(menu_name, '\x00', ''):trimex()
-end
-local function is_chat_open()
-    local menu_name = get_game_menu_name()
-    return menu_name:match('menu[%s]+inline')
-end
-
-local pEventSystem = ashita.memory.find('FFXiMain.dll', 0, 'A0????????84C0741AA1????????85C0741166A1????????663B05????????0F94C0C3', 0, 0)
-local function is_event_system_active()
-    if (pEventSystem == 0) then
-        return false
-    end
-    local ptr = ashita.memory.read_uint32(pEventSystem + 1)
-    if (ptr == 0) then
-        return false
-    end
-
-    return (ashita.memory.read_uint8(ptr) == 1)
-end
+-- TODO: Move into a lib/helpers file: game menu, event system, interface hidden, user camera.
 
 -------------------------------------------------------------------------------
 
@@ -99,7 +79,7 @@ balloon.initialize = function(new_settings)
     for _, v in ipairs(additional_chat_modes) do
         balloon.accepted_chat_modes:add(v)
     end
-    local chat_mode_list = balloon.accepted_chat_modes:concat(' ')
+    -- local chat_mode_list = balloon.accepted_chat_modes:concat(' ')
 
     -- Remove old filter setting
     if balloon.settings.filter ~= nil then
@@ -109,7 +89,12 @@ balloon.initialize = function(new_settings)
 	balloon.load_theme()
 
     if balloon.theme_options ~= nil and new_settings == nil then
-        print(chat.header(addon.name):append(chat.message('Theme "%s", language: %s, chat modes: %s'):format(balloon.settings.theme, balloon.lang_code, chat_mode_list)))
+        print(chat.header(addon.name):append(chat.message('Theme "%s" (%s)'):format(balloon.settings.theme, balloon.lang_code)))
+        -- print(chat.header(addon.name):append(chat.message('Theme "%s", language: %s, chat modes: %s'):format(balloon.settings.theme, balloon.lang_code, chat_mode_list)))
+    end
+
+    if not helpers.stepdialog.available and balloon.settings.cinematic then
+        print(chat.header(addon.name):append(chat.error('Unable to load stepdialog pointers for cinematic mode.')))
     end
 end
 
@@ -203,6 +188,71 @@ balloon.handle_player_movement = function(player_entity)
     balloon.player_pos = new_player_pos
 end
 
+balloon.handle_cinematics = function(player_ent, delta_time)
+    -- Detect if player is in a cinematic
+    if player_ent.StatusServer == 4 then
+        -- In an event
+        balloon.in_event = true
+
+        if balloon.status_server ~= player_ent.StatusServer then
+            -- Small delay to wait for StatusEvent to be updated
+            balloon.auto_hide_after = balloon.auto_hide_delay
+            -- TODO: Figure out which packet updates StatusEvent so we can listen for that instead
+            balloon.status_server = player_ent.StatusServer
+        elseif balloon.auto_hide_after > 0 then
+            balloon.auto_hide_after = balloon.auto_hide_after - delta_time
+            if balloon.auto_hide_after <= 0 then
+                balloon.auto_hide_after = 0
+            end
+        elseif not helpers.is_user_camera_enabled() then
+            -- In a cutscene
+            balloon.in_cinematic = true
+            
+            if balloon.settings.cinematic and balloon.settings.display_mode > 0 then
+                -- Show game UI if dialog option open
+                if helpers.is_dialog_option_open() == balloon.auto_hide_game_ui then
+                    balloon.auto_hide_game_ui = not balloon.auto_hide_game_ui
+                    helpers.set_game_interface_hidden(balloon.auto_hide_game_ui)
+
+                    -- Small delay before next change
+                    balloon.auto_hide_after = balloon.auto_hide_delay
+                end
+            end
+        else
+            -- Not in a cutscene
+            balloon.in_cinematic = false
+
+            if balloon.auto_hide_game_ui then
+                balloon.auto_hide_game_ui = false
+                helpers.set_game_interface_hidden(false)
+            end
+        end
+    else
+        balloon.in_cinematic = false
+        balloon.in_event = false
+
+        if balloon.auto_hide_game_ui then
+            balloon.auto_hide_game_ui = false
+            helpers.set_game_interface_hidden(false)
+        end
+    end
+end
+
+balloon.handle_button_continue = function()
+    if helpers.is_chat_open() then
+        return
+    end
+
+    if not ui:hidden() then
+        balloon.close()
+
+        -- If the game UI is hidden, then ensure dialog continues
+        if helpers.is_game_interface_hidden() and not helpers.is_dialog_option_open() then
+            e.blocked = helpers.stepdialog.run()
+        end
+    end
+end
+
 balloon.process_incoming_message = function(e)
     -- Obtain the chat mode..
     local mode = bit.band(e.mode, 0x000000FF)
@@ -231,7 +281,7 @@ balloon.process_incoming_message = function(e)
 	if balloon.settings.display_mode >= 1 then
         -- Do we need to check if the player is in combat?
         -- We only check if the player is engaged (has weapon out) but this should be enough for our use case.
-        if not balloon.settings.in_combat and not is_event_system_active() then
+        if not balloon.settings.in_combat and not helpers.is_event_system_active() then
             local entity = AshitaCore:GetMemoryManager():GetEntity()
             local party = AshitaCore:GetMemoryManager():GetParty()
             if entity ~= nil and party ~= nil then
@@ -423,7 +473,7 @@ balloon.sub_chars_post_utf8 = function(str)
 	return new_str
 end
 
-local function print_help(isError)
+balloon.print_help = function(isError)
     -- Print the help header..
     if (isError) then
         print(chat.header(addon.name):append(chat.error('Invalid command syntax for command: ')):append(chat.success('/' .. addon.name)))
@@ -443,9 +493,10 @@ local function print_help(isError)
         { '/balloon delay <seconds>', 'Delay before closing promptless balloons.' },
         { '/balloon speed <chars per second>', 'Speed that text is displayed, in characters per second.' },
         { '/balloon portrait', 'Toggle the display of character portraits, if the theme has settings for them.' },
-        { '/balloon move_closes', 'Toggle balloon auto-close on player movement.' },
+        { '/balloon move_close', 'Toggle balloon auto-close on player movement.' },
         { '/balloon always_on_top', 'Toggle always on top (IMGUI mode).' },
         { '/balloon in_combat', 'Toggle displaying balloon during combat.' },
+        { '/balloon cinematic', 'Toggle auto hide of game UI during cutscenes.' },
         { '/balloon test <name> <lang> <mode>', 'Display a test bubble. Lang: - (auto), en or ja. Mode: 1 (dialogue), 2 (system). "/balloon test" to see the list of available tests.' },
     }
 
@@ -454,6 +505,8 @@ local function print_help(isError)
         print(chat.header(addon.name):append(chat.error('Usage: ')):append(chat.message(v[1]):append(' - ')):append(chat.color1(6, v[2])))
     end)
 end
+
+-- Ashita events
 
 ashita.events.register('command', 'balloon_command_cb', function(e)
     -- Parse the command arguments..
@@ -467,7 +520,7 @@ ashita.events.register('command', 'balloon_command_cb', function(e)
 
     -- Handle: /balloon help
     if (#args == 2 and args[2]:any('help')) then
-        print_help(false)
+        balloon.print_help(false)
         return
     end
 
@@ -566,17 +619,28 @@ ashita.events.register('command', 'balloon_command_cb', function(e)
 
     -- Handle toggle options
     -- Handle: /balloon portrait
-    -- Handle: /balloon move_closes
-    if (#args == 2 and args[2]:any('portrait', 'portraits', 'move_closes', 'move_close', 'always_on_top', 'in_combat')) then
+    -- Handle: /balloon move_close
+    -- Handle: /balloon always_on_top
+    -- Handle: /balloon in_combat
+    -- Handle: /balloon cinematic
+    if (#args == 2 and args[2]:any(
+        'portrait', 'portraits',
+        'move_closes', 'move_close',
+        'always_on_top',
+        'in_combat',
+        'cinematic', 'cinema')
+    ) then
         local setting_key_alias = {
             portrait = 'portraits',
             move_closes = 'move_close',
+            cinema = 'cinematic',
         }
         local setting_names = {
             portraits = 'Display portraits',
             move_close = 'Close balloons on player movement',
             always_on_top = 'Always on top (IMGUI mode)',
             in_combat = 'Display in combat',
+            cinematic = 'Cinematic mode',
         }
         local setting_key = setting_key_alias[args[2]] or args[2]
         local setting_name = setting_names[setting_key] or args[2]
@@ -633,7 +697,7 @@ ashita.events.register('command', 'balloon_command_cb', function(e)
     end
 
     -- Unhandled: Print help information..
-    print_help(true)
+    balloon.print_help(true)
 end)
 
 ashita.events.register('load', 'balloon_load', function()
@@ -671,7 +735,7 @@ ashita.events.register('packet_in', 'balloon_packet_in', function(e)
             return
         end
         local type = struct.unpack('b', e.data_modified, 0x04 + 1)
-        LogManager:Log(5, 'Balloon', 'packets.inc.leave_conversation - type: ' .. tostring(type))
+        -- LogManager:Log(5, 'Balloon', 'packets.inc.leave_conversation - type: ' .. tostring(type))
         if tonumber(type) == 0 then
             if balloon.debug_closing then print('Closing from leave conversation: ' .. type) end
             balloon.close()
@@ -692,15 +756,16 @@ ashita.events.register('packet_out', 'balloon_packet_out', function (e)
 
         if in_menu == 1 then
             balloon.in_menu = true
-        elseif option_index == 0 or option_index == 2 then --if option_index ~= 2 then -- 2 = selected a home point warp
-            if balloon.debug_closing then print('Closing from dialogue option') end
-            balloon.close()
+        else
+            balloon.in_menu = false
+            if option_index == 0 or option_index == 2 then --if option_index ~= 2 then -- 2 = selected a home point warp
+                if balloon.debug_closing then print('Closing from dialogue option') end
+                balloon.close()
+            end
         end
 
-        LogManager:Log(5, 'Balloon', 'packets.out.dialogue_option - option_index: ' .. tostring(option_index) .. ', in_menu: ' .. tostring(in_menu))
-	end
-
-    if e.id == defines.packets.out.homepoint_map then
+        -- LogManager:Log(5, 'Balloon', 'packets.out.dialogue_option - option_index: ' .. tostring(option_index) .. ', in_menu: ' .. tostring(in_menu))
+    elseif e.id == defines.packets.out.homepoint_map then
         -- User is viewing home point map
         balloon.close()
         -- We're still in the menu
@@ -739,15 +804,16 @@ ashita.events.register('d3d_present', 'balloon_d3d_present', function()
     -- Don't display unless we have a player entity and we're not zoning
     local player = AshitaCore:GetMemoryManager():GetPlayer()
     local player_ent = GetPlayerEntity()
-    if (player == nil or player.isZoning or player_ent == nil) then
+    if player == nil or player.isZoning or player_ent == nil then
 		return
 	end
 
     -- Handle movement closes balloon
     balloon.handle_player_movement(player_ent)
+    -- Handle cinematics
+    balloon.handle_cinematics(player_ent, delta_time)
 
     if not ui:hidden() then
-
         if balloon.settings.always_on_top then
             ui:render_imgui(delta_time)
         else
@@ -800,41 +866,20 @@ ashita.events.register('mouse', 'balloon_mouse', function (e)
 end)
 
 ashita.events.register('key_data', 'balloon_key_data', function(e)
-    if is_chat_open() then
-        return
-    end
-
     -- DirectInput key codes http://www.flint.jp/misc/?q=dik
     if e.down and (e.key == 0x01 or e.key == 0x1C) then
-        if not ui:hidden() then
-            if balloon.debug_closing then print('Closing from enter key') end
-            balloon.close()
-        end
+        balloon.handle_button_continue()
     end
 end)
 
 ashita.events.register('dinput_button', 'balloon_dinput_button', function(e)
-    if is_chat_open() then
-        return
-    end
-
     if defines.DINPUT_CONTROLLER_DISMISS[e.button] ~= nil and e.state == 128 then
-        if not ui:hidden() then
-            if balloon.debug_closing then print('Closing from dinput') end
-            balloon.close()
-        end
+        balloon.handle_button_continue()
     end
 end)
 
 ashita.events.register('xinput_button', 'balloon_xinput_button', function(e)
-    if is_chat_open() then
-        return
-    end
-
     if defines.XINPUT_CONTROLLER_DISMISS[e.button] ~= nil and e.state == 1 then
-        if not ui:hidden() then
-            if balloon.debug_closing then print('Closing from xinput') end
-            balloon.close()
-        end
+        balloon.handle_button_continue()
     end
 end)

@@ -45,11 +45,13 @@ You can use `/balloon` or `/bl`
 
 `/balloon portrait` - Toggle the display of character portraits, if the theme has settings for them.
 
-`/balloon move_closes` - Toggle balloon auto-close on player movement.
+`/balloon move_close` - Toggle balloon auto-close on player movement.
 
 `/balloon always_on_top` - Toggle always on top (IMGUI mode). This mode renders the final elements using IMGUI to ensure Balloon always appears in front of any other custom UI. If for some reason you have issues with this mode, you can use this command to disable it.
 
 `/balloon in_combat` - Toggle displaying balloon during combat (off by default).
+
+`/balloon cinematic` - Toggle cinematic mode - auto hide game UI during cutscenes (on by default).
 
 `/balloon test <name> <lang> <mode>` - Display a test bubble. Lang: "-" (auto), "en" or "ja". Mode: 1 (dialogue), 2 (system).
 

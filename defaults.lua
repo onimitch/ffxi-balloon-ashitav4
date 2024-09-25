@@ -11,6 +11,7 @@ defaults.scale = 1
 defaults.portraits = true
 defaults.always_on_top = true
 defaults.in_combat = false
+defaults.cinematic = true
 
 defaults.additional_chat_modes = {
     144

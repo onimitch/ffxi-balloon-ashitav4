@@ -54,11 +54,11 @@ defines.packets = {
     inc = {
         zone_update = 0x00A,
         zone_out = 0x00B,
-        leave_conversation = 0x052,
         mog_menu = 0x02E,
         npc_interact1a = 0x032,
         npc_interact1b = 0x033,
         npc_interact2 = 0x034,
+        leave_conversation = 0x052,
     },
     out = {
         action = 0x01A,
