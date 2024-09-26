@@ -17,11 +17,11 @@ helpers.get_game_menu_name = function()
     return string.gsub(menu_name, '\x00', ''):trimex()
 end
 helpers.is_chat_open = function()
-    local menu_name = helpers.get_game_menu_nam()
+    local menu_name = helpers.get_game_menu_name()
     return menu_name:match('menu[%s]+inline') ~= nil
 end
 helpers.is_dialog_option_open = function()
-    local menu_name = helpers.get_game_menu_nam()
+    local menu_name = helpers.get_game_menu_name()
     return menu_name:match('menu[%s]+query') ~= nil
 end
 
