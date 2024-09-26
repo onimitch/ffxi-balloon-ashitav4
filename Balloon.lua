@@ -238,7 +238,7 @@ balloon.handle_cinematics = function(player_ent, delta_time)
     end
 end
 
-balloon.handle_button_continue = function()
+balloon.handle_button_continue = function(e)
     if helpers.is_chat_open() then
         return
     end
@@ -868,18 +868,18 @@ end)
 ashita.events.register('key_data', 'balloon_key_data', function(e)
     -- DirectInput key codes http://www.flint.jp/misc/?q=dik
     if e.down and (e.key == 0x01 or e.key == 0x1C) then
-        balloon.handle_button_continue()
+        balloon.handle_button_continue(e)
     end
 end)
 
 ashita.events.register('dinput_button', 'balloon_dinput_button', function(e)
     if defines.DINPUT_CONTROLLER_DISMISS[e.button] ~= nil and e.state == 128 then
-        balloon.handle_button_continue()
+        balloon.handle_button_continue(e)
     end
 end)
 
 ashita.events.register('xinput_button', 'balloon_xinput_button', function(e)
     if defines.XINPUT_CONTROLLER_DISMISS[e.button] ~= nil and e.state == 1 then
-        balloon.handle_button_continue()
+        balloon.handle_button_continue(e)
     end
 end)
