@@ -47,9 +47,13 @@ local balloon = {
     auto_hide_game_ui = false,
     status_server = nil,
     auto_hide_after = 0,
-    auto_hide_delay = 1,
+    auto_hide_delay = 0.5,
     in_cinematic = false,
     in_event = false,
+    last_known_target = nil,
+    cinematic_ignore_targets = {
+        'Garden Furrow',
+    },
 }
 
 -- parses a string into char[hex bytecode]
@@ -189,8 +193,19 @@ balloon.handle_player_movement = function(player_entity)
 end
 
 balloon.handle_cinematics = function(player_ent, delta_time)
+    -- Ignore certain cinematics by checking the player's last known target
+    local ignore = false
+    if balloon.last_known_target ~= nil then
+        for _, v in pairs(balloon.cinematic_ignore_targets) do
+            if string.find(balloon.last_known_target, v) then
+                ignore = true
+                break
+            end
+        end
+    end
+
     -- Detect if player is in a cinematic
-    if player_ent.StatusServer == 4 then
+    if not ignore and player_ent.StatusServer == 4 then
         -- In an event
         balloon.in_event = true
 
@@ -807,6 +822,15 @@ ashita.events.register('d3d_present', 'balloon_d3d_present', function()
     if player == nil or player.isZoning or player_ent == nil then
 		return
 	end
+
+    -- Check player's last target so we can ignore certain "cutscenes"
+    local player_target = AshitaCore:GetMemoryManager():GetTarget():GetTargetIndex(0)
+    local entity = GetEntity(tonumber(player_target))
+    local last_known_target = entity and entity.Name or nil
+    if last_known_target ~= nil and last_known_target ~= balloon.last_known_target then
+        -- print('player_target entity: ' ..last_known_target)
+        balloon.last_known_target = last_known_target
+    end
 
     -- Handle movement closes balloon
     balloon.handle_player_movement(player_ent)
