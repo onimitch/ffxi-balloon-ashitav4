@@ -57,6 +57,14 @@ You can use `/balloon` or `/bl`
 
 `/balloon test` - List all available tests.
 
+## Cinematic mode
+
+Balloon will auto hide the game UI during a cutscene and handle key/button presses to continue the dialogue.
+If the game presents you with options during a cutscene, Balloon will temporarily re-show the game UI and hide it again once you've made a selection.
+
+Cinematic mode is enabled by default. 
+If you want to turn it off, you can toggle the option using `/balloon cinematic`.
+
 ## Moving balloon
 
 While the balloon is open you can use the mouse to click and drag it to move it around.
@@ -107,6 +115,7 @@ e.g: `/balloon test bahamut` or `/balloon test colors`.
 ## Issues/Support
 
 I only have limited time available to offer support, but if you have a problem, have discovered a bug or want to request a feature, please [create an issue on GitHub](https://github.com/onimitch/ffxi-balloon-ashitav4/issues).
+
 
 ## Gdifonts
 
