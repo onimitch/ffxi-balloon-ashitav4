@@ -907,7 +907,7 @@ end)
 
 ashita.events.register('key_data', 'balloon_key_data', function(e)
     -- DirectInput key codes http://www.flint.jp/misc/?q=dik
-    if e.down and (e.key == 0x01 or e.key == 0x1C) then
+    if e.down and (e.key == 0x01 or e.key == 0x1C or e.key == 0x9C) then
         balloon.handle_button_continue(e)
     end
 end)
