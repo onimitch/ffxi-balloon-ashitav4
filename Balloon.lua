@@ -54,6 +54,8 @@ local balloon = {
     cinematic_ignore_targets = {
         'Garden Furrow',
     },
+    limit_fps_enabled = false,
+    limit_fps_restore = 2,
 }
 
 -- parses a string into char[hex bytecode]
@@ -231,7 +233,8 @@ balloon.handle_cinematics = function(player_ent, delta_time)
         elseif not helpers.is_user_camera_enabled() then
             -- In a cutscene
             balloon.in_cinematic = true
-            
+            balloon.limit_fps(true)
+
             if balloon.settings.cinematic and balloon.settings.display_mode > 0 then
                 -- Show game UI if dialog option open
                 if helpers.is_dialog_option_open() == balloon.auto_hide_game_ui then
@@ -245,6 +248,7 @@ balloon.handle_cinematics = function(player_ent, delta_time)
         else
             -- Not in a cutscene
             balloon.in_cinematic = false
+            balloon.limit_fps(false)
 
             if balloon.auto_hide_game_ui then
                 balloon.auto_hide_game_ui = false
@@ -254,6 +258,7 @@ balloon.handle_cinematics = function(player_ent, delta_time)
     else
         balloon.in_cinematic = false
         balloon.in_event = false
+        balloon.limit_fps(false)
 
         if balloon.auto_hide_game_ui then
             balloon.auto_hide_game_ui = false
@@ -274,6 +279,19 @@ balloon.handle_button_continue = function(e)
         if helpers.is_game_interface_hidden() and not helpers.is_dialog_option_open() then
             e.blocked = helpers.stepdialog.run()
         end
+    end
+end
+
+balloon.limit_fps = function(enabled)
+    enabled = enabled and balloon.settings.control_fps
+    if balloon.limit_fps_enabled ~= enabled then
+        if enabled then
+            balloon.limit_fps_restore = helpers.get_fps_divisor()
+            helpers.set_fps_divisor(2) -- 30fps
+        else
+            helpers.set_fps_divisor(balloon.limit_fps_restore)
+        end
+        balloon.limit_fps_enabled = enabled
     end
 end
 
@@ -522,6 +540,7 @@ balloon.print_help = function(isError)
         { '/balloon in_combat', 'Toggle displaying balloon during combat.' },
         { '/balloon system', 'Toggle displaying balloon for system messages (e.g Home Point).' },
         { '/balloon cinematic', 'Toggle auto hide of game UI during cutscenes.' },
+        { '/balloon fps', 'Toggle fps control during cutscenes to prevent lockups in certain cutscenes.' },
         { '/balloon test <name> <lang> <mode>', 'Display a test bubble. Lang: - (auto), en or ja. Mode: 1 (dialogue), 2 (system). "/balloon test" to see the list of available tests.' },
     }
 
@@ -649,13 +668,15 @@ ashita.events.register('command', 'balloon_command_cb', function(e)
     -- Handle: /balloon in_combat
     -- Handle: /balloon system
     -- Handle: /balloon cinematic
+    -- Handle: /balloon fps
     if (#args == 2 and args[2]:any(
         'portrait', 'portraits',
         'move_closes', 'move_close',
         'always_on_top',
         'in_combat',
         'system', 'system_messages',
-        'cinematic', 'cinema')
+        'cinematic', 'cinema',
+        'fps')
     ) then
         local setting_key_alias = {
             portrait = 'portraits',
@@ -670,6 +691,7 @@ ashita.events.register('command', 'balloon_command_cb', function(e)
             in_combat = 'Display in combat',
             system_messages = 'Display for system messages',
             cinematic = 'Cinematic mode',
+            fps = 'Control fps during cutscenes',
         }
         local setting_key = setting_key_alias[args[2]] or args[2]
         local setting_name = setting_names[setting_key] or args[2]
@@ -682,6 +704,8 @@ ashita.events.register('command', 'balloon_command_cb', function(e)
             balloon.load_theme()
         elseif setting_key == 'system_messages' then
             balloon.load_chat_mode_settings()
+        elseif setting_key == 'fps' then
+            balloon.limit_fps(balloon.limit_fps_enabled)
         end
 
         print(chat.header(addon.name):append(chat.message('%s changed: '):format(setting_name)):append(chat.success(balloon.settings[setting_key] and 'on' or 'off')))

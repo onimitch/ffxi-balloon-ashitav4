@@ -70,6 +70,29 @@ helpers.set_game_interface_hidden = function(hidden)
     return true
 end
 
+-- fps
+
+local pFpsDivisor = ashita.memory.find('FFXiMain.dll', 0, '81EC000100003BC174218B0D', 0, 0)
+helpers.get_fps_divisor = function()
+    if pFpsDivisor == 0 then
+        return 2
+    end
+
+    local pointer = ashita.memory.read_uint32(pFpsDivisor + 0x0C)
+    pointer = ashita.memory.read_uint32(pointer)
+    return ashita.memory.read_uint32(pointer + 0x30)
+end
+
+helpers.set_fps_divisor = function(divisor)
+    if pFpsDivisor == 0 then
+        return
+    end
+
+    local pointer = ashita.memory.read_uint32(pFpsDivisor + 0x0C)
+    pointer = ashita.memory.read_uint32(pointer)
+    ashita.memory.write_uint32(pointer + 0x30, math.round(divisor))
+end
+
 -- user camera
 
 local userCamera = {

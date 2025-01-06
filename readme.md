@@ -55,6 +55,8 @@ You can use `/balloon` or `/bl`
 
 `/balloon cinematic` - Toggle cinematic mode - auto hide game UI during cutscenes (on by default).
 
+`/balloon fps` - Toggle fps control during cutscenes to prevent lockups in certain cutscenes (on by default).
+
 `/balloon test <name> <lang> <mode>` - Display a test bubble. Lang: "-" (auto), "en" or "ja". Mode: 1 (dialogue), 2 (system).
 
 `/balloon test` - List all available tests.

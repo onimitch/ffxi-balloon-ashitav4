@@ -13,6 +13,7 @@ defaults.always_on_top = true
 defaults.in_combat = false
 defaults.cinematic = true
 defaults.system_messages = true
+defaults.control_fps = true
 
 defaults.additional_chat_modes = {
     144
