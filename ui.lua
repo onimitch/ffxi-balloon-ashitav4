@@ -4,6 +4,7 @@ local C = ffi.C
 local d3d8dev = d3d.get_device()
 
 local gdi = require('gdifonts.include')
+local encoding = require('gdifonts.encoding')
 local imgui = require('imgui')
 
 local PI2 = math.pi*2
@@ -392,8 +393,9 @@ function ui:set_character(name)
 
     local zone_id = tonumber(AshitaCore:GetMemoryManager():GetParty():GetMemberZone(0))
     local zone_name = AshitaCore:GetResourceManager():GetString("zones.names", zone_id)
+    local zone_name_utf8 = encoding:ShiftJIS_To_UTF8(zone_name)
     local s = false
-    if zone_name:endswith('[S]') then
+    if zone_name_utf8:endswith('[S]') or zone_name_utf8:endswith('〔Ｓ〕') then
         s = true
     end
 
