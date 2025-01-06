@@ -51,6 +51,8 @@ You can use `/balloon` or `/bl`
 
 `/balloon in_combat` - Toggle displaying balloon during combat (off by default).
 
+`/balloon system` - Toggle displaying balloon for system messages, e.g Home Points. (on by default).
+
 `/balloon cinematic` - Toggle cinematic mode - auto hide game UI during cutscenes (on by default).
 
 `/balloon test <name> <lang> <mode>` - Display a test bubble. Lang: "-" (auto), "en" or "ja". Mode: 1 (dialogue), 2 (system).

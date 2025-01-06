@@ -72,18 +72,7 @@ balloon.initialize = function(new_settings)
     local lang = AshitaCore:GetConfigurationManager():GetInt32('boot', 'ashita.language', 'playonline', 2)
     balloon.lang_code = lang == 1 and 'ja' or 'en'
 
-    -- Default chat modes that are always on
-    balloon.accepted_chat_modes = S{
-        chat_modes.message,
-        chat_modes.system,
-    }
-
-    -- Get additional chat modes from settings
-    local additional_chat_modes = balloon.settings.additional_chat_modes or {}
-    for _, v in ipairs(additional_chat_modes) do
-        balloon.accepted_chat_modes:add(v)
-    end
-    -- local chat_mode_list = balloon.accepted_chat_modes:concat(' ')
+    balloon.load_chat_mode_settings()
 
     -- Remove old filter setting
     if balloon.settings.filter ~= nil then
@@ -94,12 +83,32 @@ balloon.initialize = function(new_settings)
 
     if balloon.theme_options ~= nil and new_settings == nil then
         print(chat.header(addon.name):append(chat.message('Theme "%s" (%s)'):format(balloon.settings.theme, balloon.lang_code)))
-        -- print(chat.header(addon.name):append(chat.message('Theme "%s", language: %s, chat modes: %s'):format(balloon.settings.theme, balloon.lang_code, chat_mode_list)))
     end
 
     if not helpers.stepdialog.available and balloon.settings.cinematic then
         print(chat.header(addon.name):append(chat.error('Unable to load stepdialog pointers for cinematic mode.')))
     end
+end
+
+balloon.load_chat_mode_settings = function()
+    -- Default chat modes that are always on
+    balloon.accepted_chat_modes = S{
+        chat_modes.message,
+    }
+
+    -- System messages like Home Point etc
+    if balloon.settings.system_messages then
+        balloon.accepted_chat_modes:add(chat_modes.system)
+    end
+
+    -- Get additional chat modes from settings
+    local additional_chat_modes = balloon.settings.additional_chat_modes or {}
+    for _, v in ipairs(additional_chat_modes) do
+        balloon.accepted_chat_modes:add(v)
+    end
+
+    -- local chat_mode_list = balloon.accepted_chat_modes:concat(' ')
+    -- print(chat.header(addon.name):append(chat.message('chat modes: %s'):format(chat_mode_list)))
 end
 
 balloon.load_theme = function()
@@ -511,6 +520,7 @@ balloon.print_help = function(isError)
         { '/balloon move_close', 'Toggle balloon auto-close on player movement.' },
         { '/balloon always_on_top', 'Toggle always on top (IMGUI mode).' },
         { '/balloon in_combat', 'Toggle displaying balloon during combat.' },
+        { '/balloon system', 'Toggle displaying balloon for system messages (e.g Home Point).' },
         { '/balloon cinematic', 'Toggle auto hide of game UI during cutscenes.' },
         { '/balloon test <name> <lang> <mode>', 'Display a test bubble. Lang: - (auto), en or ja. Mode: 1 (dialogue), 2 (system). "/balloon test" to see the list of available tests.' },
     }
@@ -637,24 +647,28 @@ ashita.events.register('command', 'balloon_command_cb', function(e)
     -- Handle: /balloon move_close
     -- Handle: /balloon always_on_top
     -- Handle: /balloon in_combat
+    -- Handle: /balloon system
     -- Handle: /balloon cinematic
     if (#args == 2 and args[2]:any(
         'portrait', 'portraits',
         'move_closes', 'move_close',
         'always_on_top',
         'in_combat',
+        'system', 'system_messages',
         'cinematic', 'cinema')
     ) then
         local setting_key_alias = {
             portrait = 'portraits',
             move_closes = 'move_close',
             cinema = 'cinematic',
+            system = 'system_messages',
         }
         local setting_names = {
             portraits = 'Display portraits',
             move_close = 'Close balloons on player movement',
             always_on_top = 'Always on top (IMGUI mode)',
             in_combat = 'Display in combat',
+            system_messages = 'Display for system messages',
             cinematic = 'Cinematic mode',
         }
         local setting_key = setting_key_alias[args[2]] or args[2]
@@ -666,6 +680,8 @@ ashita.events.register('command', 'balloon_command_cb', function(e)
         -- Some additional logic we need to run depending on the setting change
         if setting_key == 'portraits' then
             balloon.load_theme()
+        elseif setting_key == 'system_messages' then
+            balloon.load_chat_mode_settings()
         end
 
         print(chat.header(addon.name):append(chat.message('%s changed: '):format(setting_name)):append(chat.success(balloon.settings[setting_key] and 'on' or 'off')))
