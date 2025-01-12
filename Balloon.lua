@@ -96,6 +96,9 @@ balloon.load_chat_mode_settings = function()
     -- Default chat modes that are always on
     balloon.accepted_chat_modes = S{
         chat_modes.message,
+        -- Note that although we have a setting to disable system messages, because some system messages appear
+        -- during cutscenes and we always show those, we always accept them here first and filter out later.
+        chat_modes.system,
     }
 
     -- System messages like Home Point etc
@@ -302,10 +305,20 @@ balloon.process_incoming_message = function(e)
 	-- log debug info
 	if S{'mode', 'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', 'Mode: ' .. mode .. ' Text: ' .. e.message) end
 
-	-- skip text modes that aren't NPC speech
+	-- Check this message is one of the ones we're interested in
     if not balloon.accepted_chat_modes[mode] then
         if S{'all'}[balloon.debug] then LogManager:Log(5, 'Balloon', ('Not accepted mode: %d'):format(mode)) end
         return
+    end
+
+    -- We handle system messsages in a special way here
+    -- If the user has turned off system messages, we will ignore them but only when not in a cutscene.
+    -- In other words cutscene system message are always displayed. This is mainly because they can be 
+    -- easily missed if the user also has the UI hidden duuring cutscenes.
+    if mode == chat_modes.system then
+        if not balloon.in_cinematic and not balloon.settings.system_message then
+            return
+        end
     end
 
     -- TODO: Check if this is correct, I think we should check it's actually a blank line, since currently this is only checking endswidth
