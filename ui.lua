@@ -399,6 +399,18 @@ function ui:set_character(name)
         s = true
     end
 
+    -- Special cases
+    -- Cutscene with Excenmille in Jugner Forest, Ghelsba Outpost, Yughott Grotto, Batallia Down - part of Wings of Goddess
+    -- TODO: Can we be sure Adult Excenmille doesn't ever appear in these zones?
+    if (zone_id == 104 or zone_id == 140 or zone_id == 142 or zone_id == 105) and name == 'Excenmille' then
+        s = true
+    end
+    -- Cutscene with Rahal in Batallia Downs - part of Wings of Goddess
+    -- TODO: Can we be sure Adult with doesn't ever appear in these zones?
+    if (zone_id == 105) and name == 'Rahal' then
+        s = true
+    end
+
     if self._show_portraits and self._theme_options.portrait then
         local theme_portrait = (addon.path..'/themes/'..self._theme..'/portraits/%s.png'):format(name)
         local theme_portrait_s = (addon.path..'/themes/'..self._theme..'/portraits/%s (S).png'):format(name)
