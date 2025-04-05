@@ -177,6 +177,7 @@ local function get_font_settings(settings)
         position_x = 0,
         position_y = 0,
         visible = true,
+        format = 0x0004, --DT_WORDBREAK auto break lines based on text boundaries
         text = '',
     }
     return font_settings
