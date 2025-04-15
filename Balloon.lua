@@ -689,13 +689,14 @@ ashita.events.register('command', 'balloon_command_cb', function(e)
         'in_combat',
         'system', 'system_messages',
         'cinematic', 'cinema',
-        'fps')
+        'control_fps', 'fps')
     ) then
         local setting_key_alias = {
             portrait = 'portraits',
             move_closes = 'move_close',
             cinema = 'cinematic',
             system = 'system_messages',
+            fps = 'control_fps'
         }
         local setting_names = {
             portraits = 'Display portraits',
@@ -704,7 +705,7 @@ ashita.events.register('command', 'balloon_command_cb', function(e)
             in_combat = 'Display in combat',
             system_messages = 'Display for system messages',
             cinematic = 'Cinematic mode',
-            fps = 'Control fps during cutscenes',
+            control_fps = 'Control fps during cutscenes',
         }
         local setting_key = setting_key_alias[args[2]] or args[2]
         local setting_name = setting_names[setting_key] or args[2]
