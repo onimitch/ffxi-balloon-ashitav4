@@ -30,6 +30,8 @@ local apply_settings = function(theme_settings, lang_code)
     options.message.font_color.red = theme_settings.message.dialogue.color.red
     options.message.font_color.green = theme_settings.message.dialogue.color.green
     options.message.font_color.blue = theme_settings.message.dialogue.color.blue
+    options.message.bold = theme_settings.message.bold or theme_settings.message.dialogue.bold or false
+    options.message.italic = theme_settings.message.italic or theme_settings.message.dialogue.italic or false
 
     options.message.dialogue = {}
     options.message.dialogue.alpha = theme_settings.message.dialogue.color.alpha
@@ -56,6 +58,9 @@ local apply_settings = function(theme_settings, lang_code)
         options.message.dialogue.stroke.blue = theme_settings.message.dialogue.stroke.blue
     end
 
+    options.message.dialogue.bold = theme_settings.message.dialogue.bold or false
+    options.message.dialogue.italic = theme_settings.message.dialogue.italic or false
+
     options.message.system = {}
     if theme_settings.message.system then
         options.message.system.alpha = theme_settings.message.system.color.alpha
@@ -75,6 +80,9 @@ local apply_settings = function(theme_settings, lang_code)
             options.message.system.stroke.green = theme_settings.message.system.stroke.green
             options.message.system.stroke.blue = theme_settings.message.system.stroke.blue
         end
+
+        options.message.system.bold = theme_settings.message.system.bold or false
+        options.message.system.italic = theme_settings.message.system.italic or false
     else
         -- use dialogue settings if there are no system settings
         options.message.system = options.message.dialogue
@@ -102,6 +110,9 @@ local apply_settings = function(theme_settings, lang_code)
         options.name.stroke.green = theme_settings.npcname.stroke.green
         options.name.stroke.blue = theme_settings.npcname.stroke.blue
     end
+
+    options.name.bold = theme_settings.npcname.bold or false
+    options.name.italic = theme_settings.npcname.italic or false
 
     if theme_settings.portrait then
         options.portrait = {}
@@ -152,6 +163,9 @@ local apply_settings = function(theme_settings, lang_code)
         else
             options.timer.stroke = options.message.stroke
         end
+
+        options.timer.bold = theme_settings.timer.bold or false
+        options.timer.italic = theme_settings.timer.italic or false
     else
         -- use prompt position and message font settings, if no timer settings exist in the theme
         options.timer.offset_x = theme_settings.prompt.offsetx
@@ -160,6 +174,8 @@ local apply_settings = function(theme_settings, lang_code)
         options.timer.font_size = options.message.font_size
         options.timer.font_color = options.message.font_color
         options.timer.stroke = options.message.stroke
+        options.timer.bold = options.message.bold
+        options.timer.italic = options.message.italic
     end
 
     return options
