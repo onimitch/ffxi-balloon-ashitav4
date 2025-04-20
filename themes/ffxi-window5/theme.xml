@@ -6,10 +6,10 @@
             <FontEnglish>Georgia</FontEnglish>
             <FontJapanese>Meiryo</FontJapanese>
             <Size>10</Size>
-            <Width>360</Width>
-            <Height>43</Height>
-            <OffsetX>-100</OffsetX>
-            <OffsetY>-20</OffsetY>
+            <Width>180</Width>
+            <Height>12</Height>
+            <OffsetX>15</OffsetX>
+            <OffsetY>-4</OffsetY>
             <TextOffsetX>40</TextOffsetX>
             <TextOffsetY>-8</TextOffsetY>
             <Color>
