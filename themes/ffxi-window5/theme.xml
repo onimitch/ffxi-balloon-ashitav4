@@ -5,13 +5,13 @@
             <Font>Georgia</Font>
             <FontEnglish>Georgia</FontEnglish>
             <FontJapanese>Meiryo</FontJapanese>
-            <Size>11</Size>
+            <Size>10</Size>
             <Width>360</Width>
             <Height>43</Height>
             <OffsetX>-100</OffsetX>
             <OffsetY>-20</OffsetY>
             <TextOffsetX>40</TextOffsetX>
-            <TextOffsetY>-10</TextOffsetY>
+            <TextOffsetY>-8</TextOffsetY>
             <Color>
                 <Alpha>255</Alpha>
                 <Blue>255</Blue>
@@ -31,12 +31,12 @@
         <Message>
             <FontEnglish>Meiryo</FontEnglish>
             <FontJapanese>Meiryo</FontJapanese>
-            <Size>9</Size>
+            <Size>8.5</Size>
             <MaxLength>81</MaxLength>
             <Width>610</Width>
             <Height>128</Height>
             <TextOffsetX>20</TextOffsetX>
-            <TextOffsetY>14</TextOffsetY>
+            <TextOffsetY>16.5</TextOffsetY>
             <TextMarginRight>20</TextMarginRight>
             <Dialogue>
                 <Color>
@@ -51,10 +51,10 @@
                 <RoE>255,174,109</RoE>
                 <Stroke>
                     <Alpha>128</Alpha>
-                    <Blue>32</Blue>
-                    <Green>32</Green>
-                    <Red>32</Red>
-                    <Width>3</Width>
+                    <Blue>255</Blue>
+                    <Green>255</Green>
+                    <Red>255</Red>
+                    <Width>0.3</Width>
                 </Stroke>
                 <Bold>true</Bold>
                 <Italic>false</Italic>
