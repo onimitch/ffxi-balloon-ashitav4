@@ -50,11 +50,11 @@
                 <KeyItems>162,157,252</KeyItems>
                 <RoE>255,174,109</RoE>
                 <Stroke>
-                    <Alpha>128</Alpha>
+                    <Alpha>64</Alpha>
                     <Blue>255</Blue>
                     <Green>255</Green>
                     <Red>255</Red>
-                    <Width>0.3</Width>
+                    <Width>0.1</Width>
                 </Stroke>
                 <Bold>true</Bold>
                 <Italic>false</Italic>
