@@ -36,7 +36,7 @@
             <Width>610</Width>
             <Height>128</Height>
             <TextOffsetX>20</TextOffsetX>
-            <TextOffsetY>20</TextOffsetY>
+            <TextOffsetY>14</TextOffsetY>
             <TextMarginRight>20</TextMarginRight>
             <Dialogue>
                 <Color>
@@ -82,17 +82,17 @@
             </System>
         </Message>
         <Prompt>
-            <Width>26</Width>
-            <Height>16</Height>
-            <OffsetX>575</OffsetX>
-            <OffsetY>105</OffsetY>
+            <Width>16</Width>
+            <Height>12</Height>
+            <OffsetX>580</OffsetX>
+            <OffsetY>100</OffsetY>
         </Prompt>
         <Timer>
             <FontEnglish>Georgia</FontEnglish>
             <FontJapanese>Meiryo</FontJapanese>
             <Size>9</Size>
             <TextOffsetX>580</TextOffsetX>
-            <TextOffsetY>100</TextOffsetY>
+            <TextOffsetY>96</TextOffsetY>
             <Color>
                 <Alpha>255</Alpha>
                 <Blue>255</Blue>
