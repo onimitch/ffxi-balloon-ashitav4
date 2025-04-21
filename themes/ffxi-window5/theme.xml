@@ -83,15 +83,15 @@
         </Message>
         <Prompt>
             <Width>16</Width>
-            <Height>12</Height>
+            <Height>14</Height>
             <OffsetX>580</OffsetX>
-            <OffsetY>100</OffsetY>
+            <OffsetY>98</OffsetY>
         </Prompt>
         <Timer>
             <FontEnglish>Georgia</FontEnglish>
             <FontJapanese>Meiryo</FontJapanese>
             <Size>9</Size>
-            <TextOffsetX>580</TextOffsetX>
+            <TextOffsetX>582</TextOffsetX>
             <TextOffsetY>96</TextOffsetY>
             <Color>
                 <Alpha>255</Alpha>
