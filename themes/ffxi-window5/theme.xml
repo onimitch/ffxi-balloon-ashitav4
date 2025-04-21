@@ -71,11 +71,11 @@
                 <KeyItems>162,157,252</KeyItems>
                 <RoE>255,174,109</RoE>
                 <Stroke>
-                    <Alpha>128</Alpha>
-                    <Blue>32</Blue>
-                    <Green>32</Green>
-                    <Red>32</Red>
-                    <Width>3</Width>
+                    <Alpha>64</Alpha>
+                    <Blue>255</Blue>
+                    <Green>255</Green>
+                    <Red>255</Red>
+                    <Width>0.1</Width>
                 </Stroke>
                 <Bold>true</Bold>
                 <Italic>false</Italic>
