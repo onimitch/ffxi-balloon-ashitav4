@@ -5,13 +5,13 @@
             <Font>Georgia</Font>
             <FontEnglish>Georgia</FontEnglish>
             <FontJapanese>Meiryo</FontJapanese>
-            <Size>11</Size>
-            <Width>360</Width>
-            <Height>43</Height>
-            <OffsetX>-100</OffsetX>
-            <OffsetY>-20</OffsetY>
+            <Size>10</Size>
+            <Width>180</Width>
+            <Height>12</Height>
+            <OffsetX>10</OffsetX>
+            <OffsetY>-4</OffsetY>
             <TextOffsetX>40</TextOffsetX>
-            <TextOffsetY>-10</TextOffsetY>
+            <TextOffsetY>-8</TextOffsetY>
             <Color>
                 <Alpha>255</Alpha>
                 <Blue>255</Blue>
@@ -31,12 +31,12 @@
         <Message>
             <FontEnglish>Meiryo</FontEnglish>
             <FontJapanese>Meiryo</FontJapanese>
-            <Size>9</Size>
+            <Size>8.5</Size>
             <MaxLength>81</MaxLength>
             <Width>610</Width>
             <Height>128</Height>
             <TextOffsetX>20</TextOffsetX>
-            <TextOffsetY>14</TextOffsetY>
+            <TextOffsetY>16.5</TextOffsetY>
             <TextMarginRight>20</TextMarginRight>
             <Dialogue>
                 <Color>
@@ -50,11 +50,11 @@
                 <KeyItems>162,157,252</KeyItems>
                 <RoE>255,174,109</RoE>
                 <Stroke>
-                    <Alpha>128</Alpha>
-                    <Blue>32</Blue>
-                    <Green>32</Green>
-                    <Red>32</Red>
-                    <Width>3</Width>
+                    <Alpha>64</Alpha>
+                    <Blue>255</Blue>
+                    <Green>255</Green>
+                    <Red>255</Red>
+                    <Width>0.1</Width>
                 </Stroke>
                 <Bold>true</Bold>
                 <Italic>false</Italic>
@@ -71,11 +71,11 @@
                 <KeyItems>162,157,252</KeyItems>
                 <RoE>255,174,109</RoE>
                 <Stroke>
-                    <Alpha>128</Alpha>
-                    <Blue>32</Blue>
-                    <Green>32</Green>
-                    <Red>32</Red>
-                    <Width>3</Width>
+                    <Alpha>64</Alpha>
+                    <Blue>255</Blue>
+                    <Green>255</Green>
+                    <Red>255</Red>
+                    <Width>0.1</Width>
                 </Stroke>
                 <Bold>true</Bold>
                 <Italic>false</Italic>
@@ -83,15 +83,15 @@
         </Message>
         <Prompt>
             <Width>16</Width>
-            <Height>12</Height>
+            <Height>14</Height>
             <OffsetX>580</OffsetX>
-            <OffsetY>100</OffsetY>
+            <OffsetY>98</OffsetY>
         </Prompt>
         <Timer>
             <FontEnglish>Georgia</FontEnglish>
             <FontJapanese>Meiryo</FontJapanese>
             <Size>9</Size>
-            <TextOffsetX>580</TextOffsetX>
+            <TextOffsetX>582</TextOffsetX>
             <TextOffsetY>96</TextOffsetY>
             <Color>
                 <Alpha>255</Alpha>
