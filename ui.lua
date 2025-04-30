@@ -59,6 +59,8 @@ local function setup_text(text, text_options)
     text:stroke_transparency(text_options.stroke.alpha or 0)
     text:stroke_color(text_options.stroke.red or 0, text_options.stroke.green or 0, text_options.stroke.blue or 0)
     text:stroke_width(text_options.stroke.width or 0)
+    text:italic(text_options.italic)
+    text:bold(text_options.bold)
 end
 
 local function setup_sprite()
@@ -96,6 +98,8 @@ function ui:load(settings, theme_options)
     self._dialogue_settings.stroke.red = theme_options.message.dialogue.stroke.red
     self._dialogue_settings.stroke.green = theme_options.message.dialogue.stroke.green
     self._dialogue_settings.stroke.blue = theme_options.message.dialogue.stroke.blue
+    self._dialogue_settings.bold = theme_options.message.dialogue.bold
+    self._dialogue_settings.italic = theme_options.message.dialogue.italic
 
     self._system_settings.path = theme_options.system_background
     self._system_settings.color = {}
@@ -114,6 +118,8 @@ function ui:load(settings, theme_options)
     self._system_settings.stroke.red = theme_options.message.system.stroke.red
     self._system_settings.stroke.green = theme_options.message.system.stroke.green
     self._system_settings.stroke.blue = theme_options.message.system.stroke.blue
+    self._system_settings.bold = theme_options.message.system.bold
+    self._system_settings.italic = theme_options.message.system.italic
 
     self._type = self._dialogue_settings
 
@@ -386,6 +392,8 @@ function ui:set_type(type)
     self.message_text:stroke_transparency(self._type.stroke.alpha)
     self.message_text:stroke_color(self._type.stroke.red, self._type.stroke.green, self._type.stroke.blue)
     self.message_text:stroke_width(self._type.stroke.width)
+    self.message_text:bold(self._type.bold)
+    self.message_text:italic(self._type.italic)
 end
 
 function ui:set_character(name)
